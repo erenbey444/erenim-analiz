@@ -1,7 +1,7 @@
-import ErenimAnaliz from './ErenimAnaliz';
+import EnhancedApp from './EnhancedApp';
 
 function App() {
-  return <ErenimAnaliz />;
+  return <EnhancedApp />;
 }
 
 export default App;

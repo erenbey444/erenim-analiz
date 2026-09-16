@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#12365c"/></linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#34a7ff"/><stop offset="1" stop-color="#5ce1e6"/></linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1030" cy="100" r="250" fill="#34a7ff" opacity=".08"/>
+  <circle cx="1040" cy="520" r="330" fill="#5ce1e6" opacity=".05"/>
+  <rect x="78" y="82" width="76" height="76" rx="22" fill="#0c1f35" stroke="#5ce1e6" stroke-opacity=".35"/>
+  <text x="116" y="133" text-anchor="middle" font-family="Arial, sans-serif" font-size="38">⚽</text>
+  <text x="78" y="230" fill="#ffffff" font-family="Arial, sans-serif" font-size="70" font-weight="800">ERENİM <tspan fill="#5ce1e6">ANALİZ</tspan></text>
+  <rect x="78" y="266" width="610" height="7" rx="4" fill="url(#accent)"/>
+  <text x="78" y="345" fill="#dce8f6" font-family="Arial, sans-serif" font-size="34" font-weight="700">Canlı Maç &amp; Oran Paneli</text>
+  <text x="78" y="404" fill="#9db1ca" font-family="Arial, sans-serif" font-size="25">Model · Piyasa · Fark · Geçmiş Oran Eşleşmeleri</text>
+  <text x="78" y="448" fill="#9db1ca" font-family="Arial, sans-serif" font-size="25">Şeffaf Tahminler ve Tahmin Arşivi</text>
+  <rect x="78" y="504" width="310" height="54" rx="27" fill="#39d98a" fill-opacity=".12" stroke="#39d98a" stroke-opacity=".35"/>
+  <circle cx="112" cy="531" r="7" fill="#39d98a"/>
+  <text x="132" y="539" fill="#9ff0c5" font-family="Arial, sans-serif" font-size="21" font-weight="700">CANLI VERİ BAĞLI</text>
+</svg>
