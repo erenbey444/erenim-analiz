@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/fetch-history.mjs",
     "build": "vite build",
     "preview": "vite preview"
   },
