@@ -10,6 +10,8 @@ import {
   Database,
   FlaskConical,
   Home,
+  KeyRound,
+  LogOut,
   Link2,
   LoaderCircle,
   MessageSquareText,
@@ -19,6 +21,7 @@ import {
   Target,
   Trash2,
   Trophy,
+  X,
 } from 'lucide-react';
 
 export type HistoricalMatch = {
@@ -191,6 +194,9 @@ const fallbackHistory: HistoricalMatch[] = [
   },
 ];
 
+const EDITOR_API_URL = 'https://phuusroqxuheloxobugn.supabase.co/functions/v1/editor-coupons';
+const EDITOR_SESSION_KEY = 'erenim-editor-password';
+
 const navItems = [
   { key: 'home', label: 'Ana Panel', icon: Home },
   { key: 'daily', label: 'Günlük Maçlar', icon: CalendarDays },
@@ -289,6 +295,11 @@ function ResultBox({ match }: { match: HistoricalMatch }) {
 
 function ErenimAnaliz() {
   const [active, setActive] = useState('manual');
+  const [editorLoginOpen, setEditorLoginOpen] = useState(false);
+  const [editorPassword, setEditorPassword] = useState('');
+  const [editorLoggedIn, setEditorLoggedIn] = useState(false);
+  const [editorLoginLoading, setEditorLoginLoading] = useState(false);
+  const [editorLoginMessage, setEditorLoginMessage] = useState('');
   const [history, setHistory] = useState<HistoricalMatch[]>(fallbackHistory);
   const [historySource, setHistorySource] = useState('5 yıllık arşiv yükleniyor...');
   const [loadingHistory, setLoadingHistory] = useState(true);
@@ -318,6 +329,49 @@ function ErenimAnaliz() {
     over: false,
     prediction: false,
   });
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem(EDITOR_SESSION_KEY);
+    if (saved) {
+      setEditorPassword(saved);
+      setEditorLoggedIn(true);
+    }
+  }, []);
+
+  async function loginEditor() {
+    if (!editorPassword.trim()) return;
+    setEditorLoginLoading(true);
+    setEditorLoginMessage('');
+    try {
+      const response = await fetch(EDITOR_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-editor-password': editorPassword,
+        },
+        body: JSON.stringify({ action: 'check' }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || 'Giriş yapılamadı.');
+      sessionStorage.setItem(EDITOR_SESSION_KEY, editorPassword);
+      setEditorLoggedIn(true);
+      setEditorLoginMessage('Editör modu açıldı.');
+      window.setTimeout(() => setEditorLoginOpen(false), 550);
+    } catch (caught) {
+      setEditorLoggedIn(false);
+      setEditorLoginMessage(caught instanceof Error ? caught.message : 'Giriş yapılamadı.');
+    } finally {
+      setEditorLoginLoading(false);
+    }
+  }
+
+  function logoutEditor() {
+    sessionStorage.removeItem(EDITOR_SESSION_KEY);
+    setEditorLoggedIn(false);
+    setEditorPassword('');
+    setEditorLoginMessage('');
+    setEditorLoginOpen(false);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -800,6 +854,65 @@ function ErenimAnaliz() {
           <Trophy size={22} />
           <strong>{history.length.toLocaleString('tr-TR')} maç</strong>
           <span>analiz için hazır</span>
+        </div>
+
+        <div className="editor-mini-wrap">
+          <button
+            className={`editor-mini-entry ${editorLoggedIn ? 'logged' : ''}`}
+            onClick={() => setEditorLoginOpen(value => !value)}
+            aria-expanded={editorLoginOpen}
+          >
+            <KeyRound size={13} />
+            {editorLoggedIn ? 'Editör açık' : 'Editör'}
+          </button>
+
+          {editorLoginOpen && (
+            <div className="editor-mini-popover">
+              <button className="editor-mini-close" onClick={() => setEditorLoginOpen(false)} aria-label="Kapat">
+                <X size={14} />
+              </button>
+              {editorLoggedIn ? (
+                <>
+                  <strong>Editör modu açık</strong>
+                  <span>Kuponları yayınlayabilir ve yönetebilirsin.</span>
+                  <button
+                    className="editor-mini-primary"
+                    onClick={() => {
+                      setActive('editor');
+                      setEditorLoginOpen(false);
+                    }}
+                  >
+                    <MessageSquareText size={14} /> Editör Tahminlere Git
+                  </button>
+                  <button className="editor-mini-logout" onClick={logoutEditor}>
+                    <LogOut size={14} /> Çıkış
+                  </button>
+                </>
+              ) : (
+                <>
+                  <strong>Editör Girişi</strong>
+                  <span>Yönetim araçlarını açar.</span>
+                  <input
+                    type="password"
+                    value={editorPassword}
+                    onChange={e => setEditorPassword(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && void loginEditor()}
+                    placeholder="Şifre"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    className="editor-mini-primary"
+                    onClick={() => void loginEditor()}
+                    disabled={editorLoginLoading || !editorPassword.trim()}
+                  >
+                    {editorLoginLoading ? <LoaderCircle size={14} className="spin" /> : <KeyRound size={14} />}
+                    Giriş
+                  </button>
+                  {editorLoginMessage && <small>{editorLoginMessage}</small>}
+                </>
+              )}
+            </div>
+          )}
         </div>
       </aside>
       <main className="content">
