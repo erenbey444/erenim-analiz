@@ -30,6 +30,7 @@ await writeFile(targetFile, bytes);
 const workbook = XLSX.read(bytes, { type: 'array' });
 const sheet = workbook.Sheets[workbook.SheetNames[0]];
 const sourceRows = XLSX.utils.sheet_to_json(sheet, { raw: false, defval: '' });
+console.log('Arşiv sütunları:', Object.keys(sourceRows[0] || {}).join(' | '));
 const compactRows = sourceRows.flatMap(row => {
   const ms1 = num(row.MS1);
   const msx = num(row.MSX);
