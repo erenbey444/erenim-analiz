@@ -4,7 +4,7 @@ export default async function handler(req,res){
       headers:{'User-Agent':'Mozilla/5.0','Accept-Language':'tr-TR,tr;q=0.9'}
     });
     const html=await r.text();
-    const needles=['Tarih','date','Date','ddl','txt','calendar','Program.aspx','__VIEWSTATE'];
+    const needles=['ChangeDate','IddaaDateCmb','GetProgram','Program.aspx','GameTypecmb','justNotPlayed','__VIEWSTATE'];
     const snippets=[];
     for(const n of needles){
       let i=0,count=0;
