@@ -60,6 +60,7 @@ export default function EditorComments() {
   const [coupons, setCoupons] = useState<EditorCoupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [draft, setDraft] = useState<EditorCoupon | null>(null);
 
   async function loadCoupons() {
     setLoading(true);
@@ -83,6 +84,17 @@ export default function EditorComments() {
 
   useEffect(() => {
     void loadCoupons();
+    try {
+      const raw = localStorage.getItem('erenim-editor-draft');
+      if (raw) {
+        const parsed = JSON.parse(raw) as EditorCoupon;
+        if (parsed && Array.isArray(parsed.selections) && parsed.selections.length) {
+          setDraft(parsed);
+        }
+      }
+    } catch {
+      // Ignore invalid local draft.
+    }
   }, []);
 
   const ordered = useMemo(() => {
@@ -117,6 +129,49 @@ export default function EditorComments() {
         <div className="card"><span>Sonuçlanan</span><strong>{resolved.length}</strong></div>
         <div className="card"><span>Başarı Oranı</span><strong>{resolved.length ? `%${winRate}` : '-'}</strong></div>
       </div>
+
+      {draft && (
+        <div className="editor-draft-card card">
+          <div className="editor-draft-head">
+            <div>
+              <span>YAYINA HAZIR TASLAK</span>
+              <strong>{draft.title || 'Editör Kuponu'}</strong>
+              <small>{formatDate(draft.date)} · {draft.selections.length} seçim</small>
+            </div>
+            <button
+              className="editor-draft-clear"
+              onClick={() => {
+                localStorage.removeItem('erenim-editor-draft');
+                setDraft(null);
+              }}
+            >
+              Taslağı Sil
+            </button>
+          </div>
+          <div className="editor-selection-list">
+            {draft.selections.map((item, index) => (
+              <div className="editor-selection" key={item.id || `draft-${index}`}>
+                <div className="editor-selection-meta">
+                  <span>{item.time || '--:--'}{item.league ? ` · ${item.league}` : ''}</span>
+                  <strong>{item.home} - {item.away}</strong>
+                </div>
+                <div className="editor-selection-pick">
+                  <span>{item.pick}</span>
+                  <b>{Number(oddValue(item.odd)).toFixed(2)}</b>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="editor-draft-total">
+            <span>Toplam oran</span>
+            <strong>{totalOdd(draft).toFixed(2)}</strong>
+          </div>
+          <button className="editor-publish-btn" disabled title="Kalıcı yayın bağlantısı yapılandırılıyor">
+            <ShoppingCart size={17} /> Editör Tahminlerde Yayınla
+          </button>
+          <p className="editor-publish-note">Seçim akışı hazır. Yayınlama bağlantısı etkinleştirildiğinde bu düğme kuponu doğrudan ziyaretçilere yayınlayacak.</p>
+        </div>
+      )}
 
       {loading ? (
         <div className="editor-coupon-empty card">Editör tahminleri yükleniyor...</div>
