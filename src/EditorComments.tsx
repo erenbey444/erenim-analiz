@@ -3,9 +3,7 @@ import {
   CheckCircle2,
   Clock3,
   Edit3,
-  KeyRound,
   LoaderCircle,
-  LogOut,
   RefreshCw,
   Save,
   ShoppingCart,
@@ -89,7 +87,6 @@ export default function EditorComments() {
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
-  const [adminOpen, setAdminOpen] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [loggedIn, setLoggedIn] = useState(false);
   const [adminMessage, setAdminMessage] = useState('');
@@ -131,31 +128,6 @@ export default function EditorComments() {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data?.error || 'İşlem başarısız.');
     return data;
-  }
-
-  async function login() {
-    if (!adminPassword.trim()) return;
-    setWorking(true);
-    setAdminMessage('');
-    try {
-      await adminRequest({ action: 'check' }, adminPassword);
-      sessionStorage.setItem(SESSION_KEY, adminPassword);
-      setLoggedIn(true);
-      setAdminOpen(false);
-      setAdminMessage('Editör girişi başarılı.');
-    } catch (caught) {
-      setLoggedIn(false);
-      setAdminMessage(caught instanceof Error ? caught.message : 'Giriş yapılamadı.');
-    } finally {
-      setWorking(false);
-    }
-  }
-
-  function logout() {
-    sessionStorage.removeItem(SESSION_KEY);
-    setLoggedIn(false);
-    setAdminPassword('');
-    setAdminMessage('');
   }
 
   function updateDraft<K extends keyof EditorCoupon>(key: K, value: EditorCoupon[K]) {
@@ -244,40 +216,9 @@ export default function EditorComments() {
           <button className="editor-refresh" onClick={() => void loadCoupons()} disabled={loading}>
             <RefreshCw size={16} className={loading ? 'spin' : ''} /> Yenile
           </button>
-          {loggedIn ? (
-            <button className="editor-login-toggle is-logged" onClick={logout}>
-              <LogOut size={16} /> Editörden Çık
-            </button>
-          ) : (
-            <button className="editor-login-toggle" onClick={() => setAdminOpen(value => !value)}>
-              <KeyRound size={16} /> Editör Girişi
-            </button>
-          )}
+          {loggedIn && <span className="editor-session-badge">Editör modu açık</span>}
         </div>
       </div>
-
-      {!loggedIn && adminOpen && (
-        <div className="editor-login-box card">
-          <div>
-            <strong>Editör Girişi</strong>
-            <span>Yalnızca kupon yayınlamak ve yönetmek için kullanılır.</span>
-          </div>
-          <div className="editor-login-row">
-            <input
-              type="password"
-              value={adminPassword}
-              onChange={e => setAdminPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && void login()}
-              placeholder="Editör şifresi"
-              autoComplete="current-password"
-            />
-            <button onClick={() => void login()} disabled={working || !adminPassword.trim()}>
-              {working ? <LoaderCircle size={16} className="spin" /> : <KeyRound size={16} />}
-              Giriş Yap
-            </button>
-          </div>
-        </div>
-      )}
 
       {adminMessage && <div className="editor-admin-flash">{adminMessage}</div>}
 
@@ -337,9 +278,7 @@ export default function EditorComments() {
               {draft.id && !draft.id.startsWith('draft-') ? 'Değişiklikleri Yayınla' : 'Editör Tahminlerde Yayınla'}
             </button>
           ) : (
-            <button className="editor-publish-btn" onClick={() => setAdminOpen(true)}>
-              <KeyRound size={17} /> Yayınlamak İçin Editör Girişi
-            </button>
+            <div className="editor-guest-note">Bu taslağı yayınlamak için ana ekrandaki küçük Editör girişini kullanın.</div>
           )}
         </div>
       )}
