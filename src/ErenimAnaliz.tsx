@@ -721,6 +721,28 @@ function ErenimAnaliz() {
     setCoupon(previous => previous.filter(item => item.matchId !== matchId));
   }
 
+  function moveCouponToEditor() {
+    if (!coupon.length) return;
+    const draft = {
+      id: `draft-${Date.now()}`,
+      title: 'Editör Kuponu',
+      date: liveDate,
+      note: '',
+      status: 'pending',
+      selections: coupon.map(item => ({
+        id: `${item.matchId}-${item.pick}`,
+        time: item.time,
+        league: item.league,
+        home: item.home,
+        away: item.away,
+        pick: couponPickLabel(item.pick),
+        odd: item.odd,
+      })),
+    };
+    localStorage.setItem('erenim-editor-draft', JSON.stringify(draft));
+    setActive('editor');
+  }
+
   function analyze() {
     const values = [toNumber(ms1), toNumber(msx), toNumber(ms2)];
     if (values.some(v => !Number.isFinite(v) || v <= 1)) {
@@ -1169,6 +1191,10 @@ function ErenimAnaliz() {
                     <span>Maç sayısı <b>{coupon.length}</b></span>
                     <span>Toplam oran <strong>{Number.isFinite(combinedOdds) ? (combinedOdds < 1000000 ? combinedOdds.toFixed(2) : combinedOdds.toExponential(2)) : '-'}</strong></span>
                   </div>
+                  <button className="editor-transfer-btn" onClick={moveCouponToEditor}>
+                    <MessageSquareText size={17} />
+                    Editör Tahminlere Aktar
+                  </button>
                 </>
               )}
             </aside>}
