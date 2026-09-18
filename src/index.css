@@ -1590,3 +1590,28 @@ td {
   .editor-draft-fields{grid-template-columns:1fr}
   .editor-manage-row select{margin-left:0}
 }
+
+
+/* Küçük editör girişi */
+.editor-mini-wrap{position:relative;display:flex;justify-content:center;margin-top:8px}
+.editor-mini-entry{border:0;background:transparent;color:#5f7890;font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:5px;padding:5px 7px;border-radius:7px;cursor:pointer;opacity:.72}
+.editor-mini-entry:hover{opacity:1;color:#9db6cb;background:rgba(255,255,255,.035)}
+.editor-mini-entry.logged{color:#65c89b;opacity:.85}
+.editor-mini-popover{position:absolute;left:8px;bottom:34px;width:220px;z-index:30;border:1px solid #29465f;background:#0d1d2e;box-shadow:0 16px 40px rgba(0,0,0,.35);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:9px}
+.editor-mini-popover strong{font-size:13px;color:#eff8ff;padding-right:22px}
+.editor-mini-popover>span{font-size:10px;color:#738ca4;line-height:1.4}
+.editor-mini-popover input{border:1px solid #2a465f;background:#091725;color:#eef8ff;border-radius:8px;padding:9px 10px;font-size:12px;outline:none}
+.editor-mini-popover input:focus{border-color:#3d8dcc}
+.editor-mini-primary,.editor-mini-logout{border:1px solid #2e5f85;background:#153a59;color:#dff3ff;border-radius:8px;padding:9px 10px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+.editor-mini-primary:hover{background:#1b4a70}
+.editor-mini-primary:disabled{opacity:.5;cursor:not-allowed}
+.editor-mini-logout{border-color:#563444;background:#251720;color:#e6a9b7}
+.editor-mini-close{position:absolute;right:8px;top:8px;width:26px;height:26px;border:0;background:transparent;color:#6f879b;display:grid;place-items:center;cursor:pointer}
+.editor-mini-popover small{font-size:10px;color:#d99696;line-height:1.35}
+.editor-session-badge{font-size:10px;color:#75d7a8;border:1px solid rgba(62,190,125,.25);background:rgba(62,190,125,.07);padding:7px 9px;border-radius:999px;display:inline-flex;align-items:center}
+.editor-guest-note{margin-top:12px;border-top:1px solid #294969;padding-top:11px;color:#667f96;font-size:10px;line-height:1.45}
+
+@media (max-width:720px){
+  .editor-mini-wrap{margin-top:0}
+  .editor-mini-popover{position:fixed;left:12px;right:12px;bottom:16px;width:auto;z-index:100}
+}
