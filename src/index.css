@@ -1615,3 +1615,33 @@ td {
   .editor-mini-wrap{margin-top:0}
   .editor-mini-popover{position:fixed;left:12px;right:12px;bottom:16px;width:auto;z-index:100}
 }
+
+
+/* Editör tahminleri canlı sonuç takibi */
+.editor-result-tabs{display:flex;gap:8px;flex-wrap:wrap}
+.editor-result-tabs button{border:1px solid #29465f;background:#0f2134;color:#91a9bd;border-radius:9px;padding:9px 11px;font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+.editor-result-tabs button b{min-width:20px;height:20px;border-radius:999px;background:#18344e;color:#cde9ff;display:inline-grid;place-items:center;font-size:10px}
+.editor-result-tabs button.active{border-color:#3d86bb;background:#163b59;color:#e9f7ff}
+.editor-result-tabs button.active.won{border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.1);color:#baf7cc}
+.editor-result-tabs button.active.lost{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.1);color:#ffc4c4}
+.editor-selection{transition:border-color .2s,background .2s}
+.editor-selection.track-won{border-color:rgba(34,197,94,.42);background:rgba(34,197,94,.065)}
+.editor-selection.track-lost{border-color:rgba(239,68,68,.42);background:rgba(239,68,68,.055)}
+.editor-selection.track-live{border-color:rgba(59,130,246,.45);background:rgba(37,99,235,.06)}
+.editor-selection-right{display:flex;align-items:center;gap:9px;justify-content:space-between}
+.editor-pick-result{width:30px;height:30px;border-radius:999px;display:grid;place-items:center;flex:0 0 auto}
+.editor-pick-result.won{background:rgba(34,197,94,.13);color:#57df86;border:1px solid rgba(34,197,94,.32)}
+.editor-pick-result.lost{background:rgba(239,68,68,.12);color:#ff7474;border:1px solid rgba(239,68,68,.32)}
+.editor-pick-result.waiting,.editor-pick-result.unknown{background:rgba(148,163,184,.08);color:#71879d;border:1px solid rgba(148,163,184,.16)}
+.editor-pick-result.live{background:rgba(59,130,246,.13);color:#63a8ff;border:1px solid rgba(59,130,246,.28)}
+.editor-live-line{margin-top:2px!important;display:inline-flex!important;align-items:center;gap:5px;color:#71aee8!important;font-size:10px!important;font-weight:800}
+.editor-live-line i{width:7px;height:7px;border-radius:50%;background:#3b82f6;box-shadow:0 0 0 0 rgba(59,130,246,.55);animation:editorLivePulse 1.4s infinite}
+@keyframes editorLivePulse{0%{box-shadow:0 0 0 0 rgba(59,130,246,.5)}70%{box-shadow:0 0 0 6px rgba(59,130,246,0)}100%{box-shadow:0 0 0 0 rgba(59,130,246,0)}}
+.editor-coupon-card.status-won{border-color:rgba(34,197,94,.34)}
+.editor-coupon-card.status-lost{border-color:rgba(239,68,68,.32)}
+@media (max-width:720px){
+  .editor-result-tabs{display:grid;grid-template-columns:1fr}
+  .editor-result-tabs button{justify-content:space-between}
+  .editor-selection-right{width:100%}
+  .editor-selection-pick{flex:1}
+}
