@@ -195,7 +195,7 @@ const navItems = [
   { key: 'home', label: 'Ana Panel', icon: Home },
   { key: 'daily', label: 'Günlük Maçlar', icon: CalendarDays },
   { key: 'liveInsights', label: 'Canlı Gol Beklentisi', icon: Activity },
-  { key: 'editor', label: 'Editör Yorumu', icon: MessageSquareText },
+  { key: 'editor', label: 'Editör Tahminler', icon: MessageSquareText },
   { key: 'suggested', label: 'Önerilen Kuponlar', icon: ShoppingCart },
   { key: 'archive', label: 'Oran Arşivi', icon: Database },
   { key: 'manual', label: 'Manuel Analiz', icon: FlaskConical },
