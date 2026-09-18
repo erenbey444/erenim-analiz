@@ -1,5 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, RefreshCw, ShoppingCart, Trophy, XCircle } from 'lucide-react';
+import {
+  CheckCircle2,
+  Clock3,
+  Edit3,
+  KeyRound,
+  LoaderCircle,
+  LogOut,
+  RefreshCw,
+  Save,
+  ShoppingCart,
+  Trash2,
+  Trophy,
+  XCircle,
+} from 'lucide-react';
 
 type CouponStatus = 'pending' | 'won' | 'lost' | 'void';
 
@@ -21,13 +34,16 @@ type EditorCoupon = {
   status: CouponStatus;
   selections: CouponSelection[];
   createdAt?: string;
+  updatedAt?: string;
 };
 
 type CouponPayload = {
   updatedAt?: string;
   coupons?: EditorCoupon[];
-  items?: EditorCoupon[];
 };
+
+const API_URL = 'https://phuusroqxuheloxobugn.supabase.co/functions/v1/editor-coupons';
+const SESSION_KEY = 'erenim-editor-password';
 
 function statusLabel(status: CouponStatus) {
   if (status === 'won') return 'Kazandı';
@@ -56,27 +72,38 @@ function totalOdd(coupon: EditorCoupon) {
   return coupon.selections.reduce((total, item) => total * oddValue(item.odd), 1);
 }
 
+function readDraft(): EditorCoupon | null {
+  try {
+    const raw = localStorage.getItem('erenim-editor-draft');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as EditorCoupon;
+    return parsed && Array.isArray(parsed.selections) && parsed.selections.length ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function EditorComments() {
   const [coupons, setCoupons] = useState<EditorCoupon[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [draft, setDraft] = useState<EditorCoupon | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState('');
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [adminMessage, setAdminMessage] = useState('');
 
   async function loadCoupons() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`/editor-picks.json?t=${Date.now()}`, { cache: 'no-store' });
-      if (!response.ok) throw new Error('Editör tahminleri alınamadı.');
-      const data = (await response.json()) as CouponPayload;
-      const rows = Array.isArray(data.coupons)
-        ? data.coupons
-        : Array.isArray(data.items)
-          ? data.items
-          : [];
-      setCoupons(rows.filter(item => Array.isArray(item?.selections)));
-    } catch {
-      setError('Editör tahminleri şu anda yüklenemedi.');
+      const response = await fetch(API_URL, { cache: 'no-store' });
+      const data = (await response.json()) as CouponPayload & { error?: string };
+      if (!response.ok) throw new Error(data.error || 'Editör tahminleri alınamadı.');
+      setCoupons(Array.isArray(data.coupons) ? data.coupons : []);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Editör tahminleri şu anda yüklenemedi.');
     } finally {
       setLoading(false);
     }
@@ -84,18 +111,113 @@ export default function EditorComments() {
 
   useEffect(() => {
     void loadCoupons();
-    try {
-      const raw = localStorage.getItem('erenim-editor-draft');
-      if (raw) {
-        const parsed = JSON.parse(raw) as EditorCoupon;
-        if (parsed && Array.isArray(parsed.selections) && parsed.selections.length) {
-          setDraft(parsed);
-        }
-      }
-    } catch {
-      // Ignore invalid local draft.
+    setDraft(readDraft());
+    const saved = sessionStorage.getItem(SESSION_KEY);
+    if (saved) {
+      setAdminPassword(saved);
+      setLoggedIn(true);
     }
   }, []);
+
+  async function adminRequest(body: unknown, password = adminPassword) {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-editor-password': password,
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data?.error || 'İşlem başarısız.');
+    return data;
+  }
+
+  async function login() {
+    if (!adminPassword.trim()) return;
+    setWorking(true);
+    setAdminMessage('');
+    try {
+      await adminRequest({ action: 'check' }, adminPassword);
+      sessionStorage.setItem(SESSION_KEY, adminPassword);
+      setLoggedIn(true);
+      setAdminOpen(false);
+      setAdminMessage('Editör girişi başarılı.');
+    } catch (caught) {
+      setLoggedIn(false);
+      setAdminMessage(caught instanceof Error ? caught.message : 'Giriş yapılamadı.');
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  function logout() {
+    sessionStorage.removeItem(SESSION_KEY);
+    setLoggedIn(false);
+    setAdminPassword('');
+    setAdminMessage('');
+  }
+
+  function updateDraft<K extends keyof EditorCoupon>(key: K, value: EditorCoupon[K]) {
+    setDraft(current => {
+      if (!current) return current;
+      const next = { ...current, [key]: value };
+      localStorage.setItem('erenim-editor-draft', JSON.stringify(next));
+      return next;
+    });
+  }
+
+  async function publishDraft() {
+    if (!draft || !loggedIn) return;
+    setWorking(true);
+    setAdminMessage('');
+    try {
+      await adminRequest({ action: 'publish', coupon: draft });
+      localStorage.removeItem('erenim-editor-draft');
+      setDraft(null);
+      setAdminMessage('Kupon yayınlandı.');
+      await loadCoupons();
+    } catch (caught) {
+      setAdminMessage(caught instanceof Error ? caught.message : 'Kupon yayınlanamadı.');
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  function editCoupon(coupon: EditorCoupon) {
+    const next = { ...coupon, selections: coupon.selections.map(item => ({ ...item })) };
+    localStorage.setItem('erenim-editor-draft', JSON.stringify(next));
+    setDraft(next);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function deleteCoupon(coupon: EditorCoupon) {
+    if (!loggedIn || !window.confirm('Bu editör kuponunu silmek istiyor musunuz?')) return;
+    setWorking(true);
+    try {
+      await adminRequest({ action: 'delete', id: coupon.id });
+      setAdminMessage('Kupon silindi.');
+      await loadCoupons();
+    } catch (caught) {
+      setAdminMessage(caught instanceof Error ? caught.message : 'Kupon silinemedi.');
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function setStatus(coupon: EditorCoupon, status: CouponStatus) {
+    if (!loggedIn) return;
+    setWorking(true);
+    try {
+      await adminRequest({ action: 'status', id: coupon.id, status });
+      setAdminMessage(`Kupon durumu: ${statusLabel(status)}`);
+      await loadCoupons();
+    } catch (caught) {
+      setAdminMessage(caught instanceof Error ? caught.message : 'Durum güncellenemedi.');
+    } finally {
+      setWorking(false);
+    }
+  }
 
   const ordered = useMemo(() => {
     return [...coupons].sort((a, b) => {
@@ -116,19 +238,48 @@ export default function EditorComments() {
       <div className="page-head editor-coupon-head">
         <div>
           <h1><ShoppingCart /> Editör Tahminler</h1>
-          <p>ERENİM ANALİZ editörünün kişisel maç seçimleri ve kuponları.</p>
+          <p>ERENİM ANALİZ editörünün kişisel maç seçimleri ve yayınladığı kuponlar.</p>
         </div>
-        <button className="editor-refresh" onClick={() => void loadCoupons()} disabled={loading}>
-          <RefreshCw size={16} className={loading ? 'spin' : ''} /> Yenile
-        </button>
+        <div className="editor-head-actions">
+          <button className="editor-refresh" onClick={() => void loadCoupons()} disabled={loading}>
+            <RefreshCw size={16} className={loading ? 'spin' : ''} /> Yenile
+          </button>
+          {loggedIn ? (
+            <button className="editor-login-toggle is-logged" onClick={logout}>
+              <LogOut size={16} /> Editörden Çık
+            </button>
+          ) : (
+            <button className="editor-login-toggle" onClick={() => setAdminOpen(value => !value)}>
+              <KeyRound size={16} /> Editör Girişi
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="editor-summary-grid">
-        <div className="card"><span>Aktif Kupon</span><strong>{activeCount}</strong></div>
-        <div className="card"><span>Toplam Kupon</span><strong>{coupons.length}</strong></div>
-        <div className="card"><span>Sonuçlanan</span><strong>{resolved.length}</strong></div>
-        <div className="card"><span>Başarı Oranı</span><strong>{resolved.length ? `%${winRate}` : '-'}</strong></div>
-      </div>
+      {!loggedIn && adminOpen && (
+        <div className="editor-login-box card">
+          <div>
+            <strong>Editör Girişi</strong>
+            <span>Yalnızca kupon yayınlamak ve yönetmek için kullanılır.</span>
+          </div>
+          <div className="editor-login-row">
+            <input
+              type="password"
+              value={adminPassword}
+              onChange={e => setAdminPassword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && void login()}
+              placeholder="Editör şifresi"
+              autoComplete="current-password"
+            />
+            <button onClick={() => void login()} disabled={working || !adminPassword.trim()}>
+              {working ? <LoaderCircle size={16} className="spin" /> : <KeyRound size={16} />}
+              Giriş Yap
+            </button>
+          </div>
+        </div>
+      )}
+
+      {adminMessage && <div className="editor-admin-flash">{adminMessage}</div>}
 
       {draft && (
         <div className="editor-draft-card card">
@@ -148,6 +299,18 @@ export default function EditorComments() {
               Taslağı Sil
             </button>
           </div>
+
+          <div className="editor-draft-fields">
+            <label>
+              <span>Kupon başlığı</span>
+              <input value={draft.title || ''} onChange={e => updateDraft('title', e.target.value)} placeholder="Örn. Günün Kuponu" />
+            </label>
+            <label>
+              <span>Editör notu</span>
+              <textarea value={draft.note || ''} onChange={e => updateDraft('note', e.target.value)} placeholder="İstersen kısa yorum ekle..." rows={3} />
+            </label>
+          </div>
+
           <div className="editor-selection-list">
             {draft.selections.map((item, index) => (
               <div className="editor-selection" key={item.id || `draft-${index}`}>
@@ -162,85 +325,108 @@ export default function EditorComments() {
               </div>
             ))}
           </div>
+
           <div className="editor-draft-total">
             <span>Toplam oran</span>
             <strong>{totalOdd(draft).toFixed(2)}</strong>
           </div>
-          <button className="editor-publish-btn" disabled title="Kalıcı yayın bağlantısı yapılandırılıyor">
-            <ShoppingCart size={17} /> Editör Tahminlerde Yayınla
-          </button>
-          <p className="editor-publish-note">Seçim akışı hazır. Yayınlama bağlantısı etkinleştirildiğinde bu düğme kuponu doğrudan ziyaretçilere yayınlayacak.</p>
+
+          {loggedIn ? (
+            <button className="editor-publish-btn active" onClick={() => void publishDraft()} disabled={working}>
+              {working ? <LoaderCircle size={17} className="spin" /> : <Save size={17} />}
+              {draft.id && !draft.id.startsWith('draft-') ? 'Değişiklikleri Yayınla' : 'Editör Tahminlerde Yayınla'}
+            </button>
+          ) : (
+            <button className="editor-publish-btn" onClick={() => setAdminOpen(true)}>
+              <KeyRound size={17} /> Yayınlamak İçin Editör Girişi
+            </button>
+          )}
         </div>
       )}
 
+      <div className="editor-summary-grid">
+        <div className="card"><span>Aktif Kupon</span><strong>{activeCount}</strong></div>
+        <div className="card"><span>Toplam Kupon</span><strong>{coupons.length}</strong></div>
+        <div className="card"><span>Sonuçlanan</span><strong>{resolved.length}</strong></div>
+        <div className="card"><span>Başarı Oranı</span><strong>{resolved.length ? `%${winRate}` : '-'}</strong></div>
+      </div>
+
       {loading ? (
-        <div className="editor-coupon-empty card">Editör tahminleri yükleniyor...</div>
+        <div className="editor-coupon-empty card"><LoaderCircle size={24} className="spin" /> Editör tahminleri yükleniyor...</div>
       ) : error ? (
         <div className="error-banner">{error}<button onClick={() => void loadCoupons()}>Tekrar dene</button></div>
       ) : ordered.length === 0 ? (
         <div className="editor-coupon-empty card">
           <ShoppingCart size={30} />
           <strong>Henüz yayınlanmış editör kuponu yok.</strong>
-          <span>Yeni kupon yayınlandığında ziyaretçiler burada görecek.</span>
+          <span>Günlük Maçlar ekranından seçimlerini yapıp kuponu buraya aktarabilirsin.</span>
         </div>
       ) : (
         <div className="editor-coupon-list">
-          {ordered.map(coupon => {
-            const total = totalOdd(coupon);
-            return (
-              <article className={`editor-coupon-card card status-${coupon.status}`} key={coupon.id}>
-                <div className="editor-coupon-card-head">
-                  <div>
-                    <span className="editor-coupon-kicker">ERENİM ANALİZ · EDİTÖR TAHMİNİ</span>
-                    <h2>{coupon.title || 'Editör Kuponu'}</h2>
-                    <small>{formatDate(coupon.date)}</small>
-                  </div>
-                  <span className={`editor-coupon-status ${coupon.status}`}>
-                    {statusIcon(coupon.status)} {statusLabel(coupon.status)}
-                  </span>
+          {ordered.map(coupon => (
+            <article className={`editor-coupon-card card status-${coupon.status}`} key={coupon.id}>
+              <div className="editor-coupon-card-head">
+                <div>
+                  <span className="editor-coupon-kicker">ERENİM ANALİZ · EDİTÖR TAHMİNİ</span>
+                  <h2>{coupon.title || 'Editör Kuponu'}</h2>
+                  <small>{formatDate(coupon.date)}</small>
                 </div>
+                <span className={`editor-coupon-status ${coupon.status}`}>
+                  {statusIcon(coupon.status)} {statusLabel(coupon.status)}
+                </span>
+              </div>
 
-                <div className="editor-coupon-box">
-                  <div className="editor-coupon-box-title">
-                    <div><ShoppingCart size={21} /><strong>Kuponum</strong></div>
-                    <span>{coupon.selections.length} seçim</span>
-                  </div>
-
-                  <div className="editor-selection-list">
-                    {coupon.selections.map((item, index) => (
-                      <div className="editor-selection" key={item.id || `${coupon.id}-${index}`}>
-                        <div className="editor-selection-meta">
-                          <span>{item.time || '--:--'}{item.league ? ` · ${item.league}` : ''}</span>
-                          <strong>{item.home} - {item.away}</strong>
-                        </div>
-                        <div className="editor-selection-pick">
-                          <span>{item.pick}</span>
-                          <b>{Number(oddValue(item.odd)).toFixed(2)}</b>
-                        </div>
+              <div className="editor-coupon-box">
+                <div className="editor-coupon-box-title">
+                  <div><ShoppingCart size={21} /><strong>Kuponum</strong></div>
+                  <span>{coupon.selections.length} seçim</span>
+                </div>
+                <div className="editor-selection-list">
+                  {coupon.selections.map((item, index) => (
+                    <div className="editor-selection" key={item.id || `${coupon.id}-${index}`}>
+                      <div className="editor-selection-meta">
+                        <span>{item.time || '--:--'}{item.league ? ` · ${item.league}` : ''}</span>
+                        <strong>{item.home} - {item.away}</strong>
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="editor-coupon-total">
-                    <div><span>Maç sayısı</span><b>{coupon.selections.length}</b></div>
-                    <div><span>Toplam oran</span><strong>{total.toFixed(2)}</strong></div>
-                  </div>
+                      <div className="editor-selection-pick">
+                        <span>{item.pick}</span>
+                        <b>{Number(oddValue(item.odd)).toFixed(2)}</b>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-
-                {coupon.note && (
-                  <div className="editor-coupon-note">
-                    <span>Editör notu</span>
-                    <p>{coupon.note}</p>
-                  </div>
-                )}
-
-                <div className="editor-coupon-footer">
-                  <span><Trophy size={14} /> Kişisel editör tahminidir</span>
-                  <small>Kesin sonuç garantisi içermez.</small>
+                <div className="editor-coupon-total">
+                  <div><span>Maç sayısı</span><b>{coupon.selections.length}</b></div>
+                  <div><span>Toplam oran</span><strong>{totalOdd(coupon).toFixed(2)}</strong></div>
                 </div>
-              </article>
-            );
-          })}
+              </div>
+
+              {coupon.note && (
+                <div className="editor-coupon-note">
+                  <span>Editör notu</span>
+                  <p>{coupon.note}</p>
+                </div>
+              )}
+
+              {loggedIn && (
+                <div className="editor-manage-row">
+                  <button onClick={() => editCoupon(coupon)}><Edit3 size={14} /> Düzenle</button>
+                  <select value={coupon.status} onChange={e => void setStatus(coupon, e.target.value as CouponStatus)} disabled={working}>
+                    <option value="pending">Bekliyor</option>
+                    <option value="won">Kazandı</option>
+                    <option value="lost">Kaybetti</option>
+                    <option value="void">İptal</option>
+                  </select>
+                  <button className="danger" onClick={() => void deleteCoupon(coupon)}><Trash2 size={14} /> Sil</button>
+                </div>
+              )}
+
+              <div className="editor-coupon-footer">
+                <span><Trophy size={14} /> Kişisel editör tahminidir</span>
+                <small>Kesin sonuç garantisi içermez.</small>
+              </div>
+            </article>
+          ))}
         </div>
       )}
     </section>
