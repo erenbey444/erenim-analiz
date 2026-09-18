@@ -181,6 +181,8 @@ export default async function handler(req, res) {
             id: String(match.id ?? match.uuid ?? `${league}-${String(match.team_A)}-${String(match.team_B)}`),
             time,
             league,
+            uuid: String(match.uuid ?? ''),
+            minute: statusCode === 2 ? Math.max(1, Math.floor(Number(match.second ?? 0) / 60)) : undefined,
             home: String(match.team_A ?? ''),
             away: String(match.team_B ?? ''),
             ...odds,
