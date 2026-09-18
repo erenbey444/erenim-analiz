@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import SuggestedCoupons from './SuggestedCoupons';
 import LiveGoalInsights from './LiveGoalInsights';
+import EditorComments from './EditorComments';
 import {
   Activity,
   BarChart3,
@@ -11,6 +12,7 @@ import {
   Home,
   Link2,
   LoaderCircle,
+  MessageSquareText,
   RefreshCw,
   Search,
   ShoppingCart,
@@ -193,6 +195,7 @@ const navItems = [
   { key: 'home', label: 'Ana Panel', icon: Home },
   { key: 'daily', label: 'Günlük Maçlar', icon: CalendarDays },
   { key: 'liveInsights', label: 'Canlı Gol Beklentisi', icon: Activity },
+  { key: 'editor', label: 'Editör Yorumu', icon: MessageSquareText },
   { key: 'suggested', label: 'Önerilen Kuponlar', icon: ShoppingCart },
   { key: 'archive', label: 'Oran Arşivi', icon: Database },
   { key: 'manual', label: 'Manuel Analiz', icon: FlaskConical },
@@ -784,6 +787,8 @@ function ErenimAnaliz() {
             loading={liveLoading}
             onRefresh={() => void loadLive()}
           />
+        ) : active === 'editor' ? (
+          <EditorComments />
         ) : active === 'suggested' ? (
           <SuggestedCoupons
             date={liveDate}
