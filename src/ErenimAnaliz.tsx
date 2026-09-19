@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import SuggestedCoupons from './SuggestedCoupons';
 import LiveGoalInsights from './LiveGoalInsights';
 import EditorComments from './EditorComments';
+import UstVarAnalysis from './UstVarAnalysis';
 import {
   Activity,
   BarChart3,
@@ -9,6 +10,7 @@ import {
   ChevronRight,
   Database,
   FlaskConical,
+  Flame,
   Home,
   KeyRound,
   LogOut,
@@ -200,6 +202,7 @@ const EDITOR_SESSION_KEY = 'erenim-editor-password';
 const navItems = [
   { key: 'home', label: 'Ana Panel', icon: Home },
   { key: 'daily', label: 'Günlük Maçlar', icon: CalendarDays },
+  { key: 'ustvar', label: 'ÜSTVAR', icon: Flame },
   { key: 'liveInsights', label: 'Canlı Gol Beklentisi', icon: Activity },
   { key: 'editor', label: 'Editör Tahminler', icon: MessageSquareText },
   { key: 'suggested', label: 'Önerilen Kuponlar', icon: ShoppingCart },
@@ -413,13 +416,13 @@ function ErenimAnaliz() {
     };
   }, []);
 
-  async function loadLive() {
+  async function loadLive(date = liveDate) {
     setLiveLoading(true);
     setLiveError('');
     setLiveWarning('');
     try {
       const response = await fetch(
-        `/api/current?date=${encodeURIComponent(liveDate)}`
+        `/api/current?date=${encodeURIComponent(date)}`
       );
       if (!response.ok) throw new Error('Program alınamadı');
       const data = (await response.json()) as CurrentResponse;
@@ -434,6 +437,12 @@ function ErenimAnaliz() {
   }
 
   useEffect(() => {
+    if (active === 'ustvar') {
+      const today = localDateString();
+      if (liveDate !== today) setLiveDate(today);
+      void loadLive(today);
+      return;
+    }
     if (active === 'daily' || active === 'liveInsights' || active === 'suggested') {
       void loadLive();
     }
@@ -916,7 +925,15 @@ function ErenimAnaliz() {
         </div>
       </aside>
       <main className="content">
-        {active === 'liveInsights' ? (
+        {active === 'ustvar' ? (
+          <UstVarAnalysis
+            matches={liveMatches}
+            history={history}
+            loading={liveLoading || loadingHistory}
+            historySource={historySource}
+            onRefresh={() => void loadLive(localDateString())}
+          />
+        ) : active === 'liveInsights' ? (
           <LiveGoalInsights
             matches={liveMatches}
             loading={liveLoading}
