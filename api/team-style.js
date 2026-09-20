@@ -328,11 +328,11 @@ async function researchedProfile(name) {
   } catch {}
   try {
     return await apiFootballProfile(name);
-  } catch (error) {
+  } catch {
     return {
       requestedName: name,
       available: false,
-      reason: error instanceof Error ? error.message : 'Gelişmiş istatistik kaynağına ulaşılamadı.',
+      reason: 'Bu takım için ayrıntılı şut/atak verisi şu anda doğrulanamadı.',
     };
   }
 }
