@@ -190,6 +190,153 @@ async function teamProfile(name) {
   };
 }
 
+
+function parseApiStat(value) {
+  if (value === null || value === undefined) return null;
+  const n = Number(String(value).replace('%', '').replace(',', '.').trim());
+  return Number.isFinite(n) ? n : null;
+}
+
+function styleFromMetrics(m = {}) {
+  const tags = [];
+  if (m.possession !== null && m.possession !== undefined && m.possession >= 55 && m.passAccuracy !== null && m.passAccuracy !== undefined && m.passAccuracy >= 82)
+    tags.push('topa sahip olma ve pas oyunu ağırlıklı');
+  if (m.possession !== null && m.possession !== undefined && m.possession <= 46 && m.fastBreaksPerMatch !== null && m.fastBreaksPerMatch !== undefined && m.fastBreaksPerMatch >= 0.8)
+    tags.push('geçiş ve kontra atakları kullanan');
+  if (m.shotsPerMatch !== null && m.shotsPerMatch !== undefined && m.shotsPerMatch >= 13)
+    tags.push('yüksek şut hacimli');
+  if (m.shotsOnTargetPerMatch !== null && m.shotsOnTargetPerMatch !== undefined && m.shotsOnTargetPerMatch >= 4.5)
+    tags.push('kaleyi sık bulan');
+  if (m.insideBoxShotsPerMatch !== null && m.insideBoxShotsPerMatch !== undefined && m.insideBoxShotsPerMatch >= 7)
+    tags.push('ceza sahası içinden üretmeyi seven');
+  if (m.cornersPerMatch !== null && m.cornersPerMatch !== undefined && m.cornersPerMatch >= 5)
+    tags.push('kanat/duran top baskısı yüksek');
+  if (m.dangerousAttacksPerMatch !== null && m.dangerousAttacksPerMatch !== undefined && m.dangerousAttacksPerMatch >= 35)
+    tags.push('yüksek hücum baskısıyla oynayan');
+  if (!tags.length && m.possession !== null && m.possession !== undefined)
+    tags.push(m.possession >= 50 ? 'topa daha çok sahip olmayı tercih eden' : 'topu rakibe bırakıp daha direkt oynayabilen');
+  return tags.slice(0, 4);
+}
+
+async function apiFootballGet(path) {
+  const key = process.env.API_FOOTBALL_KEY;
+  if (!key) throw new Error('API_FOOTBALL_KEY missing');
+  const response = await fetch(`https://v3.football.api-sports.io${path}`, {
+    headers: { 'x-apisports-key': key, Accept: 'application/json' },
+  });
+  const data = await response.json();
+  if (!response.ok || (data?.errors && Object.keys(data.errors).length)) {
+    throw new Error(`API-Football ${response.status}`);
+  }
+  return data;
+}
+
+async function resolveApiFootballTeam(name) {
+  const data = await apiFootballGet(`/teams?search=${encodeURIComponent(name)}`);
+  const rows = Array.isArray(data?.response) ? data.response : [];
+  const candidates = rows
+    .map(row => row?.team)
+    .filter(Boolean)
+    .map(team => ({ team, score: scoreName(team.name || '', name) }))
+    .sort((a, b) => b.score - a.score);
+  const best = candidates[0];
+  if (!best || best.score < 35) return null;
+  return { id: Number(best.team.id), name: String(best.team.name || name) };
+}
+
+function mean(values) {
+  const clean = values.filter(value => typeof value === 'number' && Number.isFinite(value));
+  return clean.length ? clean.reduce((sum, value) => sum + value, 0) / clean.length : null;
+}
+
+async function apiFootballProfile(name) {
+  const team = await resolveApiFootballTeam(name);
+  if (!team) return { requestedName: name, available: false, reason: 'API-Football takım eşleşmesi bulunamadı.' };
+
+  const fixturesData = await apiFootballGet(`/fixtures?team=${team.id}&last=3`);
+  const fixtures = (Array.isArray(fixturesData?.response) ? fixturesData.response : [])
+    .filter(item => item?.fixture?.id)
+    .slice(0, 3);
+
+  const samples = [];
+  for (const fixture of fixtures) {
+    try {
+      const statsData = await apiFootballGet(`/fixtures/statistics?fixture=${fixture.fixture.id}&team=${team.id}`);
+      const teamRow = Array.isArray(statsData?.response) ? statsData.response[0] : null;
+      const list = Array.isArray(teamRow?.statistics) ? teamRow.statistics : [];
+      const map = new Map(list.map(item => [String(item.type || '').toLocaleLowerCase('en-US'), parseApiStat(item.value)]));
+      const get = (...names) => {
+        for (const name of names) {
+          const value = map.get(name.toLocaleLowerCase('en-US'));
+          if (value !== undefined && value !== null) return value;
+        }
+        return null;
+      };
+      samples.push({
+        shots: get('Total Shots'),
+        shotsOnTarget: get('Shots on Goal'),
+        possession: get('Ball Possession'),
+        corners: get('Corner Kicks'),
+        bigChances: get('Big Chances'),
+        fastBreaks: get('Fast Breaks'),
+        insideBoxShots: get('Shots insidebox', 'Shots inside box'),
+        finalThirdEntries: get('Final third entries', 'Final Third Entries'),
+        attacks: get('Attacks'),
+        dangerousAttacks: get('Dangerous Attacks'),
+        passAccuracy: get('Passes %'),
+      });
+    } catch {}
+  }
+
+  if (!samples.length) {
+    return { requestedName: name, name: team.name, available: false, reason: 'Son maçlarda ayrıntılı istatistik bulunamadı.' };
+  }
+
+  const metrics = {
+    shotsPerMatch: mean(samples.map(x => x.shots)),
+    shotsOnTargetPerMatch: mean(samples.map(x => x.shotsOnTarget)),
+    possession: mean(samples.map(x => x.possession)),
+    cornersPerMatch: mean(samples.map(x => x.corners)),
+    bigChancesPerMatch: mean(samples.map(x => x.bigChances)),
+    fastBreaksPerMatch: mean(samples.map(x => x.fastBreaks)),
+    insideBoxShotsPerMatch: mean(samples.map(x => x.insideBoxShots)),
+    finalThirdEntriesPerMatch: mean(samples.map(x => x.finalThirdEntries)),
+    attacksPerMatch: mean(samples.map(x => x.attacks)),
+    dangerousAttacksPerMatch: mean(samples.map(x => x.dangerousAttacks)),
+    passAccuracy: mean(samples.map(x => x.passAccuracy)),
+    goalsPerMatch: null,
+    concededPerMatch: null,
+  };
+
+  return {
+    requestedName: name,
+    available: true,
+    name: team.name,
+    tournament: 'Son oynanan maçlar',
+    season: `Son ${samples.length} istatistikli maç`,
+    matches: samples.length,
+    metrics,
+    style: styleFromMetrics(metrics),
+    source: 'API-Football',
+  };
+}
+
+async function researchedProfile(name) {
+  try {
+    const sofa = await teamProfile(name);
+    if (sofa?.available) return { ...sofa, source: 'Sofascore' };
+  } catch {}
+  try {
+    return await apiFootballProfile(name);
+  } catch (error) {
+    return {
+      requestedName: name,
+      available: false,
+      reason: error instanceof Error ? error.message : 'Gelişmiş istatistik kaynağına ulaşılamadı.',
+    };
+  }
+}
+
 export default async function handler(req, res) {
   const home = String(req.query?.home || '').trim();
   const away = String(req.query?.away || '').trim();
@@ -204,11 +351,12 @@ export default async function handler(req, res) {
 
   try {
     const [homeProfile, awayProfile] = await Promise.all([
-      teamProfile(home).catch(error => ({ requestedName: home, available: false, reason: error instanceof Error ? error.message : 'Veri alınamadı.' })),
-      teamProfile(away).catch(error => ({ requestedName: away, available: false, reason: error instanceof Error ? error.message : 'Veri alınamadı.' })),
+      researchedProfile(home),
+      researchedProfile(away),
     ]);
+    const sources = [...new Set([homeProfile?.source, awayProfile?.source].filter(Boolean))];
     const value = {
-      source: 'Sofascore',
+      source: sources.length ? sources.join(' + ') : 'Araştırma kaynağı',
       researchedAt: new Date().toISOString(),
       home: homeProfile,
       away: awayProfile,
