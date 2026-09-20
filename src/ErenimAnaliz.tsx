@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import SuggestedCoupons from './SuggestedCoupons';
 import LiveGoalInsights from './LiveGoalInsights';
 import EditorComments from './EditorComments';
+import EditorMatchComments from './EditorMatchComments';
 import UstVarAnalysis from './UstVarAnalysis';
 import MatchAnalysis from './MatchAnalysis';
 import {
@@ -206,7 +207,8 @@ const navItems = [
   { key: 'matchAnalysis', label: 'Maç Analizi', icon: Target },
   { key: 'ustvar', label: 'ÜSTVAR', icon: Flame },
   { key: 'liveInsights', label: 'Canlı Gol Beklentisi', icon: Activity },
-  { key: 'editor', label: 'Editör Tahminler', icon: MessageSquareText },
+  { key: 'editorComments', label: 'Editör Maç Yorumları', icon: MessageSquareText },
+  { key: 'editor', label: 'Editör Tahminler', icon: ShoppingCart },
   { key: 'suggested', label: 'Önerilen Kuponlar', icon: ShoppingCart },
   { key: 'archive', label: 'Oran Arşivi', icon: Database },
   { key: 'manual', label: 'Manuel Analiz', icon: FlaskConical },
@@ -439,7 +441,7 @@ function ErenimAnaliz() {
   }
 
   useEffect(() => {
-    if (active === 'ustvar') {
+    if (active === 'ustvar' || active === 'editorComments') {
       const today = localDateString();
       if (liveDate !== today) setLiveDate(today);
       void loadLive(today);
@@ -947,6 +949,14 @@ function ErenimAnaliz() {
               void loadLive(value);
             }}
             onRefresh={() => void loadLive(liveDate)}
+          />
+        ) : active === 'editorComments' ? (
+          <EditorMatchComments
+            matches={liveMatches}
+            history={history}
+            loading={liveLoading || loadingHistory}
+            warning={liveWarning}
+            onRefresh={() => void loadLive(localDateString())}
           />
         ) : active === 'liveInsights' ? (
           <LiveGoalInsights
