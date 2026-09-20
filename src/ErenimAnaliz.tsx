@@ -3,6 +3,7 @@ import SuggestedCoupons from './SuggestedCoupons';
 import LiveGoalInsights from './LiveGoalInsights';
 import EditorComments from './EditorComments';
 import UstVarAnalysis from './UstVarAnalysis';
+import MatchAnalysis from './MatchAnalysis';
 import {
   Activity,
   BarChart3,
@@ -202,6 +203,7 @@ const EDITOR_SESSION_KEY = 'erenim-editor-password';
 const navItems = [
   { key: 'home', label: 'Ana Panel', icon: Home },
   { key: 'daily', label: 'Günlük Maçlar', icon: CalendarDays },
+  { key: 'matchAnalysis', label: 'Maç Analizi', icon: Target },
   { key: 'ustvar', label: 'ÜSTVAR', icon: Flame },
   { key: 'liveInsights', label: 'Canlı Gol Beklentisi', icon: Activity },
   { key: 'editor', label: 'Editör Tahminler', icon: MessageSquareText },
@@ -443,7 +445,7 @@ function ErenimAnaliz() {
       void loadLive(today);
       return;
     }
-    if (active === 'daily' || active === 'liveInsights' || active === 'suggested') {
+    if (active === 'daily' || active === 'matchAnalysis' || active === 'liveInsights' || active === 'suggested') {
       void loadLive();
     }
   }, [active]);
@@ -932,6 +934,19 @@ function ErenimAnaliz() {
             loading={liveLoading || loadingHistory}
             historySource={historySource}
             onRefresh={() => void loadLive(localDateString())}
+          />
+        ) : active === 'matchAnalysis' ? (
+          <MatchAnalysis
+            matches={liveMatches}
+            history={history}
+            loading={liveLoading || loadingHistory}
+            date={liveDate}
+            warning={liveWarning}
+            onDateChange={value => {
+              setLiveDate(value);
+              void loadLive(value);
+            }}
+            onRefresh={() => void loadLive(liveDate)}
           />
         ) : active === 'liveInsights' ? (
           <LiveGoalInsights
