@@ -167,6 +167,9 @@ async function teamProfile(name) {
   const fastTotal = firstNumber(stats, ['fastBreaks', 'fast_breaks']);
   const insideTotal = firstNumber(stats, ['shotsFromInsideTheBox', 'shots_from_inside_the_box']);
   const finalThirdTotal = firstNumber(stats, ['finalThirdEntries', 'final_third_entries']);
+  const attacksTotal = firstNumber(stats, ['attacks', 'totalAttacks', 'total_attacks']);
+  const dangerousAttacksTotal = firstNumber(stats, ['dangerousAttacks', 'dangerous_attacks']);
+  const xgTotal = firstNumber(stats, ['expectedGoals', 'expected_goals', 'xg']);
 
   return {
     requestedName: name,
@@ -185,9 +188,9 @@ async function teamProfile(name) {
       fastBreaksPerMatch: avg(fastTotal, matches),
       insideBoxShotsPerMatch: avg(insideTotal, matches),
       finalThirdEntriesPerMatch: avg(finalThirdTotal, matches),
-      attacksPerMatch: attacks,
-      dangerousAttacksPerMatch: dangerousAttacks,
-      xgPerMatch: xg,
+      attacksPerMatch: avg(attacksTotal, matches),
+      dangerousAttacksPerMatch: avg(dangerousAttacksTotal, matches),
+      xgPerMatch: avg(xgTotal, matches),
       passAccuracy: firstNumber(stats, ['accuratePassesPercentage', 'accurate_passes_percentage']),
       goalsPerMatch: avg(firstNumber(stats, ['goalsScored', 'goals_scored']), matches),
       concededPerMatch: avg(firstNumber(stats, ['goalsConceded', 'goals_conceded']), matches),
