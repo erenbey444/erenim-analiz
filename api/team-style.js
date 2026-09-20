@@ -111,6 +111,9 @@ function buildStyle(stats, matches) {
   const fast = avg(firstNumber(stats, ['fastBreaks', 'fast_breaks']), matches);
   const inside = avg(firstNumber(stats, ['shotsFromInsideTheBox', 'shots_from_inside_the_box']), matches);
   const finalThird = avg(firstNumber(stats, ['finalThirdEntries', 'final_third_entries']), matches);
+  const attacks = avg(firstNumber(stats, ['attacks', 'totalAttacks', 'total_attacks']), matches);
+  const dangerousAttacks = avg(firstNumber(stats, ['dangerousAttacks', 'dangerous_attacks']), matches);
+  const xg = avg(firstNumber(stats, ['expectedGoals', 'expected_goals', 'xg']), matches);
 
   const tags = [];
   if (possession !== null && possession >= 55 && passPct !== null && passPct >= 82)
@@ -182,6 +185,9 @@ async function teamProfile(name) {
       fastBreaksPerMatch: avg(fastTotal, matches),
       insideBoxShotsPerMatch: avg(insideTotal, matches),
       finalThirdEntriesPerMatch: avg(finalThirdTotal, matches),
+      attacksPerMatch: attacks,
+      dangerousAttacksPerMatch: dangerousAttacks,
+      xgPerMatch: xg,
       passAccuracy: firstNumber(stats, ['accuratePassesPercentage', 'accurate_passes_percentage']),
       goalsPerMatch: avg(firstNumber(stats, ['goalsScored', 'goals_scored']), matches),
       concededPerMatch: avg(firstNumber(stats, ['goalsConceded', 'goals_conceded']), matches),
@@ -283,6 +289,7 @@ async function apiFootballProfile(name) {
         finalThirdEntries: get('Final third entries', 'Final Third Entries'),
         attacks: get('Attacks'),
         dangerousAttacks: get('Dangerous Attacks'),
+        xg: get('Expected Goals', 'expected_goals', 'xG'),
         passAccuracy: get('Passes %'),
       });
     } catch {}
@@ -303,6 +310,7 @@ async function apiFootballProfile(name) {
     finalThirdEntriesPerMatch: mean(samples.map(x => x.finalThirdEntries)),
     attacksPerMatch: mean(samples.map(x => x.attacks)),
     dangerousAttacksPerMatch: mean(samples.map(x => x.dangerousAttacks)),
+    xgPerMatch: mean(samples.map(x => x.xg)),
     passAccuracy: mean(samples.map(x => x.passAccuracy)),
     goalsPerMatch: null,
     concededPerMatch: null,
