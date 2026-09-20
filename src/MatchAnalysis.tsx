@@ -84,6 +84,38 @@ type LiveInsight = {
   matchComment?: string;
 };
 
+type TeamStyleProfile = {
+  requestedName: string;
+  available: boolean;
+  reason?: string;
+  name?: string;
+  tournament?: string;
+  season?: string;
+  matches?: number | null;
+  metrics?: {
+    shotsPerMatch?: number | null;
+    shotsOnTargetPerMatch?: number | null;
+    possession?: number | null;
+    cornersPerMatch?: number | null;
+    bigChancesPerMatch?: number | null;
+    fastBreaksPerMatch?: number | null;
+    insideBoxShotsPerMatch?: number | null;
+    finalThirdEntriesPerMatch?: number | null;
+    passAccuracy?: number | null;
+    goalsPerMatch?: number | null;
+    concededPerMatch?: number | null;
+  };
+  style?: string[];
+};
+
+type TeamStyleResponse = {
+  source?: string;
+  researchedAt?: string;
+  warning?: string;
+  home?: TeamStyleProfile;
+  away?: TeamStyleProfile;
+};
+
 function normalizeTeamName(value: string) {
   return value.trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ');
 }
@@ -356,6 +388,21 @@ function confidence(candidate: Candidate | undefined, sample: number) {
   return 'Düşük';
 }
 
+function metric(value: number | null | undefined, suffix = '') {
+  return typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(1)}${suffix}` : '—';
+}
+
+function researchedLine(profile?: TeamStyleProfile) {
+  if (!profile?.available) return '';
+  const m = profile.metrics;
+  const parts = [
+    typeof m?.shotsPerMatch === 'number' ? `${m.shotsPerMatch.toFixed(1)} şut/maç` : '',
+    typeof m?.shotsOnTargetPerMatch === 'number' ? `${m.shotsOnTargetPerMatch.toFixed(1)} isabetli şut/maç` : '',
+    typeof m?.possession === 'number' ? `%${m.possession.toFixed(0)} topa sahip olma` : '',
+  ].filter(Boolean);
+  return parts.join(' · ');
+}
+
 function MatchAnalysis({
   matches,
   history,
@@ -369,6 +416,8 @@ function MatchAnalysis({
   const [selectedId, setSelectedId] = useState('');
   const [liveInsight, setLiveInsight] = useState<LiveInsight | null>(null);
   const [liveInsightLoading, setLiveInsightLoading] = useState(false);
+  const [teamResearch, setTeamResearch] = useState<TeamStyleResponse | null>(null);
+  const [teamResearchLoading, setTeamResearchLoading] = useState(false);
 
   const filteredMatches = useMemo(() => {
     const q = query.trim().toLocaleLowerCase('tr-TR');
@@ -428,6 +477,29 @@ function MatchAnalysis({
       cancelled = true;
     };
   }, [selected]);
+
+  useEffect(() => {
+    setTeamResearch(null);
+    if (!selected) return;
+    let cancelled = false;
+    setTeamResearchLoading(true);
+    fetch(`/api/team-style?home=${encodeURIComponent(selected.home)}&away=${encodeURIComponent(selected.away)}`, {
+      cache: 'force-cache',
+    })
+      .then(response => (response.ok ? response.json() : Promise.reject()))
+      .then(data => {
+        if (!cancelled) setTeamResearch(data as TeamStyleResponse);
+      })
+      .catch(() => {
+        if (!cancelled) setTeamResearch(null);
+      })
+      .finally(() => {
+        if (!cancelled) setTeamResearchLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected?.id]);
 
   const model = useMemo(() => {
     if (!selected) return null;
@@ -750,6 +822,66 @@ function MatchAnalysis({
                 </div>
               </div>
 
+              <div className="card match-ai-research">
+                <div className="match-ai-card-title">
+                  <Search size={18} />
+                  <strong>🔎 Araştırılan Oyun Verileri ve Futbol Anlayışı</strong>
+                </div>
+                {teamResearchLoading ? (
+                  <div className="match-ai-live-loading"><LoaderCircle className="spin" size={18} /> Takımların güncel sezon istatistikleri araştırılıyor...</div>
+                ) : teamResearch && (teamResearch.home?.available || teamResearch.away?.available) ? (
+                  <>
+                    <div className="match-ai-research-grid">
+                      {[
+                        { side: 'Ev Sahibi', profile: teamResearch.home, fallback: selected.home },
+                        { side: 'Deplasman', profile: teamResearch.away, fallback: selected.away },
+                      ].map(item => {
+                        const profile = item.profile;
+                        const m = profile?.metrics;
+                        return (
+                          <div className="match-ai-style-team" key={item.side}>
+                            <div className="match-ai-style-head">
+                              <span>{item.side}</span>
+                              <strong>{profile?.name || item.fallback}</strong>
+                              <small>{profile?.tournament || 'Güncel müsabaka'}{profile?.season ? ` · ${profile.season}` : ''}</small>
+                            </div>
+                            {profile?.available ? (
+                              <>
+                                <div className="match-ai-style-metrics">
+                                  <span><b>{metric(m?.shotsPerMatch)}</b> Şut / maç</span>
+                                  <span><b>{metric(m?.shotsOnTargetPerMatch)}</b> Kaleyi bulan / maç</span>
+                                  <span><b>{metric(m?.possession, '%')}</b> Topa sahip olma</span>
+                                  <span><b>{metric(m?.cornersPerMatch)}</b> Korner / maç</span>
+                                  <span><b>{metric(m?.bigChancesPerMatch)}</b> Büyük şans / maç</span>
+                                  {typeof m?.finalThirdEntriesPerMatch === 'number' && <span><b>{metric(m.finalThirdEntriesPerMatch)}</b> 3. bölge girişi / maç</span>}
+                                  {typeof m?.fastBreaksPerMatch === 'number' && <span><b>{metric(m.fastBreaksPerMatch)}</b> Hızlı hücum / maç</span>}
+                                  {typeof m?.insideBoxShotsPerMatch === 'number' && <span><b>{metric(m.insideBoxShotsPerMatch)}</b> Ceza sahası şutu / maç</span>}
+                                  {typeof m?.passAccuracy === 'number' && <span><b>{metric(m.passAccuracy, '%')}</b> Pas isabeti</span>}
+                                </div>
+                                <div className="match-ai-style-text">
+                                  <b>Futbol anlayışı:</b>{' '}
+                                  {profile.style?.length ? profile.style.join(', ') : 'Kaynakta oyun stilini güvenilir biçimde ayıracak yeterli metrik bulunamadı.'}
+                                </div>
+                              </>
+                            ) : (
+                              <p>{profile?.reason || 'Bu takım için ayrıntılı oyun verisi bulunamadı.'}</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="match-ai-research-note">
+                      <ShieldAlert size={15} />
+                      <span>“Atak sayısı” doğrudan bulunmadığında uydurulmuyor; varsa 3. bölge girişleri, hızlı hücumlar, şut hacmi, büyük fırsatlar ve topa sahip olma ile oyun profili açıklanıyor. Kaynak: {teamResearch.source || 'araştırma kaynağı'}.</span>
+                    </div>
+                  </>
+                ) : (
+                  <p className="match-ai-research-empty">
+                    Bu karşılaşmadaki takımlar için doğrulanabilir ayrıntılı şut/oyun verisi bulunamadı. Mevcut arşiv form analizi kullanılmaya devam ediyor.
+                  </p>
+                )}
+              </div>
+
               <div className="match-ai-two">
                 <div className="card match-ai-detail">
                   <div className="match-ai-card-title">
@@ -850,7 +982,7 @@ function MatchAnalysis({
                 <div className="card match-ai-primary">
                   <div className="match-ai-card-title">
                     <Target size={19} />
-                    <strong>🎯 En Güçlü Tahmin</strong>
+                    <strong>🏁 Günün Sonunda – Tahmin</strong>
                   </div>
                   {model.primary ? (
                     <>
@@ -861,6 +993,12 @@ function MatchAnalysis({
                       <ol>
                         {model.primary.evidence.map(item => <li key={item}>{item}</li>)}
                       </ol>
+                      {(researchedLine(teamResearch?.home) || researchedLine(teamResearch?.away)) && (
+                        <div className="match-ai-research-summary">
+                          {researchedLine(teamResearch?.home) && <span><b>{selected.home}:</b> {researchedLine(teamResearch?.home)}</span>}
+                          {researchedLine(teamResearch?.away) && <span><b>{selected.away}:</b> {researchedLine(teamResearch?.away)}</span>}
+                        </div>
+                      )}
                     </>
                   ) : (
                     <p>Mevcut doğrulanmış veriler güçlü ve tek yönlü bir seçim üretmiyor. Bu maçta tahmin zorlanmadı.</p>
@@ -926,7 +1064,7 @@ function MatchAnalysis({
                   <span><b>İç/Dış saha</b><em>Mevcut</em></span>
                   <span><b>H2H</b><em>{model.h2h.length ? 'Mevcut' : 'Sınırlı'}</em></span>
                   <span><b>Güncel oranlar</b><em>Mevcut</em></span>
-                  <span><b>xG / şut</b><em>{liveInsight?.stats?.xg || liveInsight?.stats?.shots ? 'Canlı maçta mevcut' : 'Pre-match yok'}</em></span>
+                  <span><b>xG / şut</b><em>{liveInsight?.stats?.xg || liveInsight?.stats?.shots ? 'Canlı maçta mevcut' : teamResearch?.home?.available || teamResearch?.away?.available ? 'Sezon şut verisi araştırıldı' : 'Bulunamadı'}</em></span>
                   <span><b>Kadro / sakatlık</b><em>Yok</em></span>
                   <span><b>Lig sırası</b><em>Yok</em></span>
                   <span><b>Genel güvenilirlik</b><em>{model.sampleQuality}</em></span>
