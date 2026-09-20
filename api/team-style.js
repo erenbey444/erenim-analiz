@@ -1,0 +1,228 @@
+const cache = new Map();
+const TTL = 6 * 60 * 60 * 1000;
+
+function norm(value='') {
+  return String(value)
+    .toLocaleLowerCase('tr-TR')
+    .replace(/[ıiİI]/g, 'i')
+    .replace(/[şŞ]/g, 's')
+    .replace(/[ğĞ]/g, 'g')
+    .replace(/[üÜ]/g, 'u')
+    .replace(/[öÖ]/g, 'o')
+    .replace(/[çÇ]/g, 'c')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+async function fetchJson(path) {
+  const urls = [
+    `https://www.sofascore.com/api/v1${path}`,
+    `https://api.sofascore.com/api/v1${path}`,
+  ];
+  let lastError;
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Accept: 'application/json, text/plain, */*',
+          'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.8',
+          'User-Agent': 'Mozilla/5.0',
+        },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('Sofascore fetch failed');
+}
+
+function scoreName(candidate, wanted) {
+  const a = norm(candidate);
+  const b = norm(wanted);
+  if (!a || !b) return -1;
+  if (a === b) return 100;
+  if (a.includes(b) || b.includes(a)) return 82;
+  const aw = new Set(a.split(' '));
+  const bw = b.split(' ');
+  const overlap = bw.filter(word => aw.has(word)).length;
+  return overlap ? (overlap / Math.max(aw.size, bw.length)) * 70 : 0;
+}
+
+async function resolveTeam(name) {
+  const data = await fetchJson(`/search/all?q=${encodeURIComponent(name)}`);
+  const results = Array.isArray(data?.results) ? data.results : [];
+  const candidates = results
+    .map(item => item?.entity || item)
+    .filter(entity => entity?.id && entity?.sport?.slug === 'football')
+    .map(entity => ({ entity, score: scoreName(entity.name || entity.shortName || '', name) }))
+    .sort((a, b) => b.score - a.score);
+  const best = candidates[0];
+  if (!best || best.score < 40) return null;
+  return {
+    id: Number(best.entity.id),
+    name: String(best.entity.name || best.entity.shortName || name),
+  };
+}
+
+async function getTeamContext(teamId) {
+  const data = await fetchJson(`/team/${teamId}/events/last/0`);
+  const events = Array.isArray(data?.events) ? data.events : [];
+  const event = events.find(item =>
+    item?.tournament?.uniqueTournament?.id &&
+    item?.season?.id &&
+    (item?.status?.type === 'finished' || item?.status?.description === 'Ended')
+  ) || events.find(item => item?.tournament?.uniqueTournament?.id && item?.season?.id);
+  if (!event) return null;
+  return {
+    tournamentId: Number(event.tournament.uniqueTournament.id),
+    tournament: String(event.tournament.uniqueTournament.name || event.tournament.name || ''),
+    seasonId: Number(event.season.id),
+    season: String(event.season.name || event.season.year || ''),
+  };
+}
+
+function num(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function firstNumber(stats, keys) {
+  for (const key of keys) {
+    const n = num(stats?.[key]);
+    if (n !== null) return n;
+  }
+  return null;
+}
+
+function avg(total, matches) {
+  if (total === null || !matches) return null;
+  return total / matches;
+}
+
+function buildStyle(stats, matches) {
+  const possession = firstNumber(stats, ['averageBallPossession', 'average_ball_possession']);
+  const passPct = firstNumber(stats, ['accuratePassesPercentage', 'accurate_passes_percentage']);
+  const shots = avg(firstNumber(stats, ['shots', 'totalShots']), matches);
+  const onTarget = avg(firstNumber(stats, ['shotsOnTarget', 'shots_on_target']), matches);
+  const corners = avg(firstNumber(stats, ['corners', 'cornerKicks']), matches);
+  const big = avg(firstNumber(stats, ['bigChances', 'big_chances']), matches);
+  const fast = avg(firstNumber(stats, ['fastBreaks', 'fast_breaks']), matches);
+  const inside = avg(firstNumber(stats, ['shotsFromInsideTheBox', 'shots_from_inside_the_box']), matches);
+  const finalThird = avg(firstNumber(stats, ['finalThirdEntries', 'final_third_entries']), matches);
+
+  const tags = [];
+  if (possession !== null && possession >= 55 && passPct !== null && passPct >= 82)
+    tags.push('topa sahip olma ve pas oyunu ağırlıklı');
+  if (possession !== null && possession <= 46 && fast !== null && fast >= 0.8)
+    tags.push('geçiş ve kontra atakları kullanan');
+  if (shots !== null && shots >= 13)
+    tags.push('yüksek şut hacimli');
+  if (onTarget !== null && onTarget >= 4.5)
+    tags.push('kaleyi sık bulan');
+  if (inside !== null && inside >= 7)
+    tags.push('ceza sahası içinden üretmeyi seven');
+  if (corners !== null && corners >= 5)
+    tags.push('kanat/duran top baskısı yüksek');
+  if (big !== null && big >= 2)
+    tags.push('net fırsat üretimi güçlü');
+  if (finalThird !== null && finalThird >= 35)
+    tags.push('rakip üçüncü bölgede sık görünen');
+
+  if (!tags.length && possession !== null)
+    tags.push(possession >= 50 ? 'topa daha çok sahip olmayı tercih eden' : 'topu rakibe bırakıp daha direkt oynayabilen');
+  return tags.slice(0, 4);
+}
+
+async function teamProfile(name) {
+  const resolved = await resolveTeam(name);
+  if (!resolved) return { requestedName: name, available: false, reason: 'Takım eşleşmesi bulunamadı.' };
+
+  const context = await getTeamContext(resolved.id);
+  if (!context) return { requestedName: name, name: resolved.name, available: false, reason: 'Güncel sezon bağlamı bulunamadı.' };
+
+  const raw = await fetchJson(
+    `/team/${resolved.id}/unique-tournament/${context.tournamentId}/season/${context.seasonId}/statistics/overall`
+  );
+  const stats = raw?.statistics || raw || {};
+  let matches = firstNumber(stats, ['matches', 'appearances', 'gamesPlayed', 'games_played']);
+  if (!matches) {
+    const recent = await fetchJson(`/team/${resolved.id}/events/last/0`).catch(() => null);
+    const events = Array.isArray(recent?.events) ? recent.events : [];
+    matches = events.filter(item =>
+      item?.season?.id === context.seasonId &&
+      item?.tournament?.uniqueTournament?.id === context.tournamentId &&
+      (item?.status?.type === 'finished' || item?.status?.description === 'Ended')
+    ).length || null;
+  }
+
+  const shotsTotal = firstNumber(stats, ['shots', 'totalShots']);
+  const onTargetTotal = firstNumber(stats, ['shotsOnTarget', 'shots_on_target']);
+  const cornersTotal = firstNumber(stats, ['corners', 'cornerKicks']);
+  const bigTotal = firstNumber(stats, ['bigChances', 'big_chances']);
+  const fastTotal = firstNumber(stats, ['fastBreaks', 'fast_breaks']);
+  const insideTotal = firstNumber(stats, ['shotsFromInsideTheBox', 'shots_from_inside_the_box']);
+  const finalThirdTotal = firstNumber(stats, ['finalThirdEntries', 'final_third_entries']);
+
+  return {
+    requestedName: name,
+    available: true,
+    name: resolved.name,
+    teamId: resolved.id,
+    tournament: context.tournament,
+    season: context.season,
+    matches,
+    metrics: {
+      shotsPerMatch: avg(shotsTotal, matches),
+      shotsOnTargetPerMatch: avg(onTargetTotal, matches),
+      possession: firstNumber(stats, ['averageBallPossession', 'average_ball_possession']),
+      cornersPerMatch: avg(cornersTotal, matches),
+      bigChancesPerMatch: avg(bigTotal, matches),
+      fastBreaksPerMatch: avg(fastTotal, matches),
+      insideBoxShotsPerMatch: avg(insideTotal, matches),
+      finalThirdEntriesPerMatch: avg(finalThirdTotal, matches),
+      passAccuracy: firstNumber(stats, ['accuratePassesPercentage', 'accurate_passes_percentage']),
+      goalsPerMatch: avg(firstNumber(stats, ['goalsScored', 'goals_scored']), matches),
+      concededPerMatch: avg(firstNumber(stats, ['goalsConceded', 'goals_conceded']), matches),
+    },
+    style: buildStyle(stats, matches),
+  };
+}
+
+export default async function handler(req, res) {
+  const home = String(req.query?.home || '').trim();
+  const away = String(req.query?.away || '').trim();
+  if (!home || !away) return res.status(400).json({ error: 'home ve away zorunlu' });
+
+  const key = `${norm(home)}|${norm(away)}`;
+  const cached = cache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate=86400');
+    return res.status(200).json(cached.value);
+  }
+
+  try {
+    const [homeProfile, awayProfile] = await Promise.all([
+      teamProfile(home).catch(error => ({ requestedName: home, available: false, reason: error instanceof Error ? error.message : 'Veri alınamadı.' })),
+      teamProfile(away).catch(error => ({ requestedName: away, available: false, reason: error instanceof Error ? error.message : 'Veri alınamadı.' })),
+    ]);
+    const value = {
+      source: 'Sofascore',
+      researchedAt: new Date().toISOString(),
+      home: homeProfile,
+      away: awayProfile,
+    };
+    cache.set(key, { expiresAt: Date.now() + TTL, value });
+    res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate=86400');
+    return res.status(200).json(value);
+  } catch (error) {
+    return res.status(200).json({
+      source: 'Sofascore',
+      researchedAt: new Date().toISOString(),
+      home: { requestedName: home, available: false, reason: 'Araştırma kaynağına ulaşılamadı.' },
+      away: { requestedName: away, available: false, reason: 'Araştırma kaynağına ulaşılamadı.' },
+      warning: error instanceof Error ? error.message : 'Araştırma kaynağına ulaşılamadı.',
+    });
+  }
+}
