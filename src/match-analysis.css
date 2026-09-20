@@ -729,3 +729,295 @@
     font-size: 10px;
   }
 }
+
+
+/* High-contrast dark theme overrides for the production shell */
+.match-ai-page,
+.match-ai-page .card,
+.match-ai-page p,
+.match-ai-page span,
+.match-ai-page small,
+.match-ai-page li,
+.match-ai-page em,
+.match-ai-page label {
+  color: #eaf2ff;
+}
+
+.match-ai-page .card {
+  background: #0f2842 !important;
+  border-color: #315274 !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.18);
+}
+
+.match-ai-page .page-head h1,
+.match-ai-page .page-head p,
+.match-ai-page .match-ai-section-title h3,
+.match-ai-page .match-ai-section-title p,
+.match-ai-page .match-ai-card-title,
+.match-ai-page .match-ai-card-title strong,
+.match-ai-page .match-ai-team-head strong,
+.match-ai-page .match-ai-team-head span {
+  color: #f5f9ff !important;
+}
+
+.match-ai-page .match-ai-section-title p,
+.match-ai-page .match-ai-team-card p,
+.match-ai-page .match-ai-detail p,
+.match-ai-page .match-ai-goals p,
+.match-ai-page .match-ai-risk li,
+.match-ai-page .match-ai-quality p,
+.match-ai-page .match-ai-alternative p,
+.match-ai-page .match-ai-footnote {
+  color: #c8d8eb !important;
+}
+
+.match-ai-page .match-ai-team-card,
+.match-ai-page .match-ai-detail,
+.match-ai-page .match-ai-comparison,
+.match-ai-page .match-ai-goals,
+.match-ai-page .match-ai-risk,
+.match-ai-page .match-ai-quality,
+.match-ai-page .match-ai-research,
+.match-ai-page .match-ai-alternative {
+  background: #102c49 !important;
+}
+
+.match-ai-page .match-ai-stats-grid span,
+.match-ai-page .match-ai-goal-summary > div,
+.match-ai-page .match-ai-quality-grid span,
+.match-ai-page .match-ai-live-grid span,
+.match-ai-page .match-ai-odds-history span,
+.match-ai-page .match-ai-mini-list > div,
+.match-ai-page .match-ai-comparison-table > div {
+  background: #173956 !important;
+  border-color: #3f6384 !important;
+  color: #dce9f8 !important;
+}
+
+.match-ai-page .match-ai-stats-grid b,
+.match-ai-page .match-ai-goal-summary b,
+.match-ai-page .match-ai-quality-grid em,
+.match-ai-page .match-ai-live-grid b,
+.match-ai-page .match-ai-odds-history b,
+.match-ai-page .match-ai-mini-list b,
+.match-ai-page .match-ai-comparison-table b {
+  color: #ffffff !important;
+}
+
+.match-ai-page .match-ai-stats-grid span,
+.match-ai-page .match-ai-goal-summary span,
+.match-ai-page .match-ai-quality-grid b,
+.match-ai-page .match-ai-live-grid span,
+.match-ai-page .match-ai-odds-history span,
+.match-ai-page .match-ai-mini-list small,
+.match-ai-page .match-ai-mini-list span,
+.match-ai-page .match-ai-comparison-table span {
+  color: #c7d8ea !important;
+}
+
+.match-ai-page .match-ai-comparison-table {
+  border-color: #416482 !important;
+}
+
+.match-ai-page .match-ai-comparison-table > div.head {
+  background: #1b4567 !important;
+}
+
+.match-ai-page .match-ai-data-gap {
+  background: #3a2b12 !important;
+  color: #ffe6ae !important;
+  border: 1px solid #725622;
+}
+
+.match-ai-page .match-ai-data-gap span {
+  color: #ffe6ae !important;
+}
+
+.match-ai-page .match-ai-primary {
+  background: linear-gradient(180deg, #123f31, #0e3228) !important;
+  border-color: #2c7c5a !important;
+}
+
+.match-ai-page .match-ai-primary h3,
+.match-ai-page .match-ai-primary li,
+.match-ai-page .match-ai-primary .match-ai-card-title,
+.match-ai-page .match-ai-primary .match-ai-card-title strong {
+  color: #effff6 !important;
+}
+
+.match-ai-page .match-ai-pick-confidence {
+  background: #1f5d43 !important;
+  color: #ecfff4 !important;
+}
+
+.match-ai-page .match-ai-pick-confidence b {
+  color: #ffffff !important;
+}
+
+.match-ai-page .match-ai-risk {
+  background: #332814 !important;
+  border-color: #745a28 !important;
+}
+
+.match-ai-page .match-ai-list-head strong,
+.match-ai-page .match-ai-list-head span {
+  color: #edf5ff !important;
+}
+
+.match-ai-page .match-ai-source {
+  background: #163653 !important;
+  border-color: #3c6488 !important;
+  color: #eaf3ff !important;
+}
+
+.match-ai-page .match-ai-toolbar label,
+.match-ai-page .match-ai-search {
+  background: #122f4c !important;
+  border-color: #3b5f80 !important;
+}
+
+.match-ai-page .match-ai-toolbar input,
+.match-ai-page .match-ai-toolbar label span,
+.match-ai-page .match-ai-search svg {
+  color: #f3f8ff !important;
+}
+
+.match-ai-page .match-ai-toolbar input::placeholder {
+  color: #9eb5cb !important;
+}
+
+.match-ai-research {
+  padding: 18px;
+}
+
+.match-ai-research-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 14px;
+}
+
+.match-ai-style-team {
+  padding: 14px;
+  border: 1px solid #3b6082;
+  border-radius: 12px;
+  background: #143451;
+}
+
+.match-ai-style-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 12px;
+}
+
+.match-ai-style-head span {
+  color: #9fc6ec !important;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.match-ai-style-head strong {
+  color: #fff;
+  font-size: 17px;
+}
+
+.match-ai-style-head small {
+  color: #a9bed2 !important;
+  font-size: 10px;
+}
+
+.match-ai-style-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 8px;
+}
+
+.match-ai-style-metrics span {
+  display: flex;
+  min-height: 62px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: #1a4263;
+  color: #c9d9e8 !important;
+  font-size: 10px;
+}
+
+.match-ai-style-metrics b {
+  color: #fff;
+  font-size: 17px;
+}
+
+.match-ai-style-text {
+  margin-top: 11px;
+  padding: 10px 12px;
+  border-left: 3px solid #5ca0e6;
+  border-radius: 7px;
+  background: #102a43;
+  color: #d9e8f6;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.match-ai-style-text b {
+  color: #8fc7ff;
+}
+
+.match-ai-research-note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #122d46;
+  border: 1px solid #345675;
+}
+
+.match-ai-research-note span {
+  color: #bcd0e4 !important;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.match-ai-research-empty {
+  color: #c9d9e9 !important;
+}
+
+.match-ai-research-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.07);
+}
+
+.match-ai-research-summary span {
+  color: #dff5e8 !important;
+  font-size: 11px;
+}
+
+.match-ai-research-summary b {
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .match-ai-research-grid {
+    grid-template-columns: 1fr;
+  }
+  .match-ai-style-metrics {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .match-ai-style-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+}
