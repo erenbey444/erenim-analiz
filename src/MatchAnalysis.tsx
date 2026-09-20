@@ -101,6 +101,8 @@ type TeamStyleProfile = {
     fastBreaksPerMatch?: number | null;
     insideBoxShotsPerMatch?: number | null;
     finalThirdEntriesPerMatch?: number | null;
+    attacksPerMatch?: number | null;
+    dangerousAttacksPerMatch?: number | null;
     passAccuracy?: number | null;
     goalsPerMatch?: number | null;
     concededPerMatch?: number | null;
@@ -853,6 +855,8 @@ function MatchAnalysis({
                                   <span><b>{metric(m?.possession, '%')}</b> Topa sahip olma</span>
                                   <span><b>{metric(m?.cornersPerMatch)}</b> Korner / maç</span>
                                   <span><b>{metric(m?.bigChancesPerMatch)}</b> Büyük şans / maç</span>
+                                  {typeof m?.attacksPerMatch === 'number' && <span><b>{metric(m.attacksPerMatch)}</b> Atak / maç</span>}
+                                  {typeof m?.dangerousAttacksPerMatch === 'number' && <span><b>{metric(m.dangerousAttacksPerMatch)}</b> Tehlikeli atak / maç</span>}
                                   {typeof m?.finalThirdEntriesPerMatch === 'number' && <span><b>{metric(m.finalThirdEntriesPerMatch)}</b> 3. bölge girişi / maç</span>}
                                   {typeof m?.fastBreaksPerMatch === 'number' && <span><b>{metric(m.fastBreaksPerMatch)}</b> Hızlı hücum / maç</span>}
                                   {typeof m?.insideBoxShotsPerMatch === 'number' && <span><b>{metric(m.insideBoxShotsPerMatch)}</b> Ceza sahası şutu / maç</span>}
