@@ -1021,3 +1021,29 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+
+.match-ai-page .match-ai-list-scroll > button {
+  background: #153651 !important;
+  border-color: #3b5e7e !important;
+}
+
+.match-ai-page .match-ai-list-scroll > button:hover,
+.match-ai-page .match-ai-list-scroll > button.active {
+  background: #1d4668 !important;
+  border-color: #69a7df !important;
+}
+
+.match-ai-page .match-ai-list-scroll > button > strong,
+.match-ai-page .match-ai-list-scroll > button > small,
+.match-ai-page .match-ai-list-meta span,
+.match-ai-page .match-ai-list-meta em,
+.match-ai-page .match-ai-versus {
+  color: #f1f7ff !important;
+}
+
+.match-ai-page .match-ai-list-scroll > button > small,
+.match-ai-page .match-ai-list-meta em,
+.match-ai-page .match-ai-versus {
+  color: #b9cde0 !important;
+}
