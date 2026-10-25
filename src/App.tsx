@@ -1,21 +1,30 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import ErenimAnaliz from './ErenimAnaliz';
+const ErenimAnaliz = lazy(() => import('./ErenimAnaliz'));
 const UnderOverAnalysis = lazy(() => import('./UnderOverAnalysis'));
+const UnoGame = lazy(() => import('./UnoGame'));
+
+function routeName() {
+  if (window.location.pathname.replace(/\/$/, '') === '/uno' || window.location.hash === '#uno') return 'uno';
+  if (window.location.hash === '#ust-alt') return 'ust-alt';
+  return 'home';
+}
 
 function App() {
-  const [underOver, setUnderOver] = useState(() => window.location.hash === '#ust-alt');
+  const [route, setRoute] = useState(routeName);
 
   useEffect(() => {
-    const onHash = () => setUnderOver(window.location.hash === '#ust-alt');
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
+    const sync = () => setRoute(routeName());
+    window.addEventListener('hashchange', sync);
+    window.addEventListener('popstate', sync);
+    return () => { window.removeEventListener('hashchange', sync); window.removeEventListener('popstate', sync); };
   }, []);
 
-  if (underOver) return <Suspense fallback={<div role="status">Arşiv hazırlanıyor…</div>}><UnderOverAnalysis /></Suspense>;
+  if (route === 'uno') return <Suspense fallback={<div role="status">UNO hazırlanıyor…</div>}><UnoGame /></Suspense>;
+  if (route === 'ust-alt') return <Suspense fallback={<div role="status">Arşiv hazırlanıyor…</div>}><UnderOverAnalysis /></Suspense>;
 
   return (
     <>
-      <ErenimAnaliz />
+      <Suspense fallback={<div role="status">ERENİM ANALİZ yükleniyor…</div>}><ErenimAnaliz /></Suspense>
       <button
         onClick={() => { window.location.hash = 'ust-alt'; }}
         style={{
@@ -25,9 +34,18 @@ function App() {
           fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 22px rgba(0,0,0,.18)'
         }}
         aria-label="Üst Alt analizini aç"
-      >
-        ↕ Üst / Alt
-      </button>
+      >↕ Üst / Alt</button>
+      <a
+        href="/uno"
+        style={{
+          position: 'fixed', right: 14, bottom: 18, zIndex: 81,
+          border: '3px solid #ffe63c', borderRadius: 15,
+          padding: '10px 18px', background: 'linear-gradient(135deg,#e01e29,#8e0916)',
+          color: '#fff', textDecoration: 'none', fontSize: 15,
+          fontWeight: 900, cursor: 'pointer', boxShadow: '0 6px 20px rgba(0,0,0,.35)'
+        }}
+        aria-label="UNO oyununu aç"
+      >🃏 UNO OYNA</a>
     </>
   );
 }
