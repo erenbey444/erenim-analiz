@@ -91,7 +91,7 @@ function insight(m:M,index:HI):I|null{
   const ov=sample.filter(r=>{const q=parts(r.score);return q&&q[0]+q[1]>2.5}).length;
   const kgm=implied2(n(m.kgVar),n(m.kgYok));
   const tm=implied2(n(m.under25),n(m.over25));
-  const candidates:{p:P;model:number;market:number;odd:number}[]=[
+  const choices:{p:P;model:number;market:number;odd:number}[]=[
     {p:'1',model:hc/total*100,market:pm[0],odd:a},
     {p:'X',model:dc/total*100,market:pm[1],odd:x},
     {p:'2',model:ac/total*100,market:pm[2],odd:b},
@@ -99,7 +99,8 @@ function insight(m:M,index:HI):I|null{
     {p:'KG_YOK',model:(total-kg)/total*100,market:kgm[1],odd:n(m.kgYok)},
     {p:'25_ALT',model:(total-ov)/total*100,market:tm[0],odd:n(m.under25)},
     {p:'25_UST',model:ov/total*100,market:tm[1],odd:n(m.over25)},
-  ].filter(z=>Number.isFinite(z.odd)&&z.odd>1).sort((u,v)=>(v.model-v.market)-(u.model-u.market));
+  ];
+  const candidates=choices.filter(z=>Number.isFinite(z.odd)&&z.odd>1).sort((u,v)=>(v.model-v.market)-(u.model-u.market));
   const z=candidates[0];
   if(!z)return null;
   const edge=z.model-z.market;

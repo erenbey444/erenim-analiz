@@ -37,7 +37,7 @@ type SuggestedCoupon = {
 
 type Candidate = SuggestedSelection & {
   confidence: Confidence;
-  score: number;
+  rankScore: number;
 };
 
 type Props = {
@@ -140,7 +140,7 @@ function candidateFor(match: LiveMatch, signal: LiveSignal, date: string): Candi
     reason: `${signal.predictionSampleCount} geçmiş eşleşmede %${best.rate.toFixed(0)} eğilim`,
     status: 'waiting',
     confidence,
-    score: best.rate + Math.min(signal.predictionSampleCount, 20) + Math.min(signal.exactCount * 2, 10),
+    rankScore: best.rate + Math.min(signal.predictionSampleCount, 20) + Math.min(signal.exactCount * 2, 10),
   };
 }
 
@@ -281,7 +281,7 @@ export default function SuggestedCoupons({ date, matches, signals, loading, onRe
       })
       .filter((item): item is Candidate => Boolean(item))
       .filter(item => !usedSelections.has(selectionKey(item)))
-      .sort((a, b) => b.score - a.score);
+      .sort((a, b) => b.rankScore - a.rankScore);
 
     const categories: Confidence[] = ['Daha Güvenli', 'Orta Güven', 'Riskli'];
     const created: SuggestedCoupon[] = [];
@@ -303,7 +303,7 @@ export default function SuggestedCoupons({ date, matches, signals, loading, onRe
           createdAt: new Date().toISOString(),
           date,
           confidence,
-          selections: selections.map(({ confidence: _confidence, score: _score, ...selection }) => selection),
+          selections: selections.map(({ confidence: _confidence, rankScore: _rankScore, ...selection }) => selection),
           totalOdd,
           status: 'active',
         });

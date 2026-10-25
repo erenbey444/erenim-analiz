@@ -1,3 +1,4 @@
+import { normalizeTeamName, historyTimestamp } from './historyUtils';
 import { useMemo, useState } from 'react';
 import {
   BarChart3,
@@ -9,7 +10,6 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
-  Star,
   Target,
   TrendingUp,
   Users,
@@ -112,24 +112,9 @@ type ResearchResponse = {
   away?: TeamResearchProfile;
 };
 
-function normalizeTeamName(value: string) {
-  return String(value || '')
-    .trim()
-    .toLocaleLowerCase('tr-TR')
-    .replace(/\s+/g, ' ');
-}
-
 function scoreParts(score: string) {
   const parts = String(score || '').split('-').map(value => Number(value.trim()));
   return parts.length === 2 && parts.every(Number.isFinite) ? parts : [0, 0];
-}
-
-function historyTimestamp(value: string) {
-  const tr = String(value || '').match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-  if (tr) return Date.UTC(Number(tr[3]), Number(tr[2]) - 1, Number(tr[1]));
-  const iso = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (iso) return Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
-  return 0;
 }
 
 function percent(value: number) {

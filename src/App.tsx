@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import ErenimAnaliz from './ErenimAnaliz';
-import UnderOverAnalysis from './UnderOverAnalysis';
+const UnderOverAnalysis = lazy(() => import('./UnderOverAnalysis'));
 
 function App() {
   const [underOver, setUnderOver] = useState(() => window.location.hash === '#ust-alt');
@@ -11,7 +11,7 @@ function App() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
-  if (underOver) return <UnderOverAnalysis />;
+  if (underOver) return <Suspense fallback={<div role="status">Arşiv hazırlanıyor…</div>}><UnderOverAnalysis /></Suspense>;
 
   return (
     <>

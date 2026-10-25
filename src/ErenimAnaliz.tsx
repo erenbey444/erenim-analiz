@@ -1,10 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import SuggestedCoupons from './SuggestedCoupons';
-import LiveGoalInsights from './LiveGoalInsights';
-import EditorComments from './EditorComments';
-import EditorMatchComments from './EditorMatchComments';
-import UstVarAnalysis from './UstVarAnalysis';
-import MatchAnalysis from './MatchAnalysis';
+import { normalizeTeamName, historyTimestamp as historyDateTimestamp } from './historyUtils';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { loadHistory } from './loadHistory';
 import {
   Activity,
   BarChart3,
@@ -28,6 +24,13 @@ import {
   X,
 } from 'lucide-react';
 
+const SuggestedCoupons = lazy(() => import('./SuggestedCoupons'));
+const LiveGoalInsights = lazy(() => import('./LiveGoalInsights'));
+const EditorComments = lazy(() => import('./EditorComments'));
+const EditorMatchComments = lazy(() => import('./EditorMatchComments'));
+const UstVarAnalysis = lazy(() => import('./UstVarAnalysis'));
+const MatchAnalysis = lazy(() => import('./MatchAnalysis'));
+
 export type HistoricalMatch = {
   date: string;
   league: string;
@@ -38,6 +41,8 @@ export type HistoricalMatch = {
   ms1: number;
   msx: number;
   ms2: number;
+  under25?: number;
+  over25?: number;
 };
 
 export type LiveMatch = {
@@ -65,10 +70,6 @@ type CurrentResponse = {
   warning?: string;
   matches: LiveMatch[];
 };
-
-type HistoryWorkerResponse =
-  | { ok: true; rows: HistoricalMatch[] }
-  | { ok: false; error: string };
 
 export type LiveSignal = {
   exactCount: number;
@@ -248,18 +249,6 @@ function oddsKey(ms1: number, msx: number, ms2: number) {
   return `${Math.round(ms1 * 100)}|${Math.round(msx * 100)}|${Math.round(ms2 * 100)}`;
 }
 
-function normalizeTeamName(value: string) {
-  return value.trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ');
-}
-
-function historyDateTimestamp(value: string) {
-  const tr = value.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-  if (tr) return Date.UTC(Number(tr[3]), Number(tr[2]) - 1, Number(tr[1]));
-  const iso = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (iso) return Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
-  return 0;
-}
-
 function predictionLabel(value: '1' | 'X' | '2') {
   return value === '1' ? 'MS1' : value === 'X' ? 'MSX' : 'MS2';
 }
@@ -328,6 +317,7 @@ function ErenimAnaliz() {
   const [liveError, setLiveError] = useState('');
   const [liveWarning, setLiveWarning] = useState('');
   const [search, setSearch] = useState('');
+  const [visibleMatches, setVisibleMatches] = useState(40);
   const [coupon, setCoupon] = useState<CouponSelection[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<LiveMatch | null>(null);
   const [signalFilters, setSignalFilters] = useState<Record<SignalFilterKey, boolean>>({
@@ -336,6 +326,7 @@ function ErenimAnaliz() {
     over: false,
     prediction: false,
   });
+  useEffect(() => setVisibleMatches(40), [active, liveDate, dailyView, search, signalFilters]);
 
   useEffect(() => {
     const saved = sessionStorage.getItem(EDITOR_SESSION_KEY);
@@ -384,40 +375,18 @@ function ErenimAnaliz() {
     let cancelled = false;
     setLoadingHistory(true);
 
-    const worker = new Worker(new URL('./historyWorker.ts', import.meta.url), {
-      type: 'module',
-    });
-    const resourceUrl = new URL(
-      'resources/sahadan_5_yil_mac_sonuclari_oranlari.xlsx',
-      document.baseURI
-    ).toString();
-
-    const failToSample = () => {
+    loadHistory().then(rows => {
+      if (cancelled) return;
+      setHistory(rows);
+      setHistorySource('5 yıllık Sahadan arşivi');
+      setLoadingHistory(false);
+    }).catch(() => {
       if (cancelled) return;
       setHistory(fallbackHistory);
       setHistorySource('5 yıllık arşiv yüklenemedi · örnek veri');
       setLoadingHistory(false);
-      worker.terminate();
-    };
-
-    worker.onmessage = (event: MessageEvent<HistoryWorkerResponse>) => {
-      if (cancelled) return;
-      if (!event.data.ok || !event.data.rows.length) {
-        failToSample();
-        return;
-      }
-      setHistory(event.data.rows);
-      setHistorySource('5 yıllık Sahadan arşivi');
-      setLoadingHistory(false);
-      window.setTimeout(() => worker.terminate(), 60_000);
-    };
-    worker.onerror = failToSample;
-    worker.postMessage({ url: resourceUrl });
-
-    return () => {
-      cancelled = true;
-      worker.terminate();
-    };
+    });
+    return () => { cancelled = true; };
   }, []);
 
   async function loadLive(date = liveDate) {
@@ -592,8 +561,10 @@ function ErenimAnaliz() {
     };
   }, [history, selectedMatch]);
 
+  const needsSignals = active === 'daily' || active === 'suggested';
   const historyOddsIndex = useMemo(() => {
     const index = new Map<string, HistoricalMatch[]>();
+    if (!needsSignals) return index;
     history.forEach(row => {
       const key = oddsKey(row.ms1, row.msx, row.ms2);
       const bucket = index.get(key);
@@ -601,10 +572,11 @@ function ErenimAnaliz() {
       else index.set(key, [row]);
     });
     return index;
-  }, [history]);
+  }, [history, needsSignals]);
 
   const historyMs1Index = useMemo(() => {
     const index = new Map<number, HistoricalMatch[]>();
+    if (!needsSignals) return index;
     history.forEach(row => {
       const key = Math.round(row.ms1 * 100);
       const bucket = index.get(key);
@@ -612,10 +584,11 @@ function ErenimAnaliz() {
       else index.set(key, [row]);
     });
     return index;
-  }, [history]);
+  }, [history, needsSignals]);
 
   const liveSignals = useMemo(() => {
     const signals = new Map<string, LiveSignal>();
+    if (!needsSignals) return signals;
     liveMatches.forEach(match => {
       const ms1Value = toNumber(match.ms1);
       const msxValue = toNumber(match.msx);
@@ -710,7 +683,7 @@ function ErenimAnaliz() {
       });
     });
     return signals;
-  }, [liveMatches, historyOddsIndex, historyMs1Index]);
+  }, [liveMatches, historyOddsIndex, historyMs1Index, needsSignals]);
 
   const statusFilteredLive = useMemo(() => {
     const isFinished = (match: LiveMatch) => {
@@ -929,6 +902,7 @@ function ErenimAnaliz() {
         </div>
       </aside>
       <main className="content">
+        <Suspense fallback={<div className="notice" role="status">Sayfa yükleniyor…</div>}>
         {active === 'ustvar' ? (
           <UstVarAnalysis
             matches={liveMatches}
@@ -1079,7 +1053,7 @@ function ErenimAnaliz() {
                     </tr>
                   </thead>
                   <tbody>
-                    {displayedLive.map(m => {
+                    {displayedLive.slice(0, visibleMatches).map(m => {
                       const signal = liveSignals.get(m.id);
                       const showExact = Boolean(signal && signal.exactCount >= 1);
                       const showNear = Boolean(
@@ -1296,6 +1270,7 @@ function ErenimAnaliz() {
                   </tbody>
                 </table>
               </div>
+              {displayedLive.length > visibleMatches && <div className="table-foot"><button className="mini-action" onClick={() => setVisibleMatches(value => value + 40)}>Daha Fazla Göster ({visibleMatches}/{displayedLive.length})</button></div>}
             </div>
             {dailyView === 'current' && <aside className="coupon-card card" aria-label="Kuponum">
               <div className="coupon-head">
@@ -1730,6 +1705,7 @@ function ErenimAnaliz() {
             </div>
           </section>
         )}
+        </Suspense>
       </main>
     </div>
   );

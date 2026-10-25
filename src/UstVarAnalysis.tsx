@@ -1,3 +1,4 @@
+import { normalizeTeamName as norm, historyTimestamp as ts } from './historyUtils';
 import { useMemo, useState } from 'react';
 import { Database, Flame, Goal, ShieldCheck, Trophy } from 'lucide-react';
 import type { HistoricalMatch, LiveMatch } from './ErenimAnaliz';
@@ -19,14 +20,6 @@ const FILTERS: Array<{key: FilterKey; label: string}> = [
   { key: 'h2h', label: 'H2H' }, { key: 'form', label: 'Son 5 Form' }, { key: 'strongest', label: 'En Güçlüler' },
 ];
 
-function norm(value: string) { return value.trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' '); }
-function ts(value: string) {
-  const tr = value.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-  if (tr) return Date.UTC(Number(tr[3]), Number(tr[2]) - 1, Number(tr[1]));
-  const iso = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (iso) return Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
-  return 0;
-}
 function score(value: string) {
   const m = value.match(/^\s*(\d+)\s*-\s*(\d+)\s*$/);
   return m ? [Number(m[1]), Number(m[2])] as const : null;

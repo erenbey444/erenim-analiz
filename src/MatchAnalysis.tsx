@@ -1,3 +1,4 @@
+import { normalizeTeamName, historyTimestamp } from './historyUtils';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
@@ -118,10 +119,6 @@ type TeamStyleResponse = {
   away?: TeamStyleProfile;
 };
 
-function normalizeTeamName(value: string) {
-  return value.trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ');
-}
-
 function scoreParts(score: string) {
   const parts = score.split('-').map(value => Number(value.trim()));
   return parts.length === 2 && parts.every(Number.isFinite) ? parts : [0, 0];
@@ -130,14 +127,6 @@ function scoreParts(score: string) {
 function toNumber(value: unknown) {
   const number = Number(String(value ?? '').replace(',', '.'));
   return Number.isFinite(number) ? number : NaN;
-}
-
-function historyTimestamp(value: string) {
-  const tr = value.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-  if (tr) return Date.UTC(Number(tr[3]), Number(tr[2]) - 1, Number(tr[1]));
-  const iso = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (iso) return Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
-  return 0;
 }
 
 function percent(value: number) {

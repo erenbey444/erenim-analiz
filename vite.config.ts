@@ -3,6 +3,11 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    allowedHosts: ['terminal.local'],
+    proxy: { '/api': { target: 'https://www.erenimanaliz.com', changeOrigin: true } },
+  },
+  worker: { format: 'es' },
   build: {
     sourcemap: false,
   },
