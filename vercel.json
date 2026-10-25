@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/uno",
+      "destination": "/index.html"
+    }
+  ]
+}
