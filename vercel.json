@@ -1,6 +1,18 @@
 {
   "rewrites": [
     {
+      "source": "/",
+      "destination": "/greyhound/index.html"
+    },
+    {
+      "source": "/futbol",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/futbol/",
+      "destination": "/index.html"
+    },
+    {
       "source": "/uno",
       "destination": "/index.html"
     }

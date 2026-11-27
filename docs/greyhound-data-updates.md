@@ -49,3 +49,9 @@ Kimlik bilgileri tarayıcı HTML'ine veya bu depoya konmaz. Yönetici girişi su
 - Windows erişimi sağlanınca kayıt kaynağını bul ve bağımsız yardımcı pilotunu kur.
 
 Bu dal hazırlık içindir. Veri tabanı kurulumu veya üretim yayını tamamlandı olarak sunulmamalıdır.
+
+## Statik arşiv yayını
+
+Kullanıcı alan adında görmek için açıkça yayın talimatı verdi. Bu sürümde ana sayfa onaylanan tasarıma yönlenir; mevcut React futbol uygulaması `/futbol`, UNO `/uno` yolunda korunur. 93 yarış HTML'e gömülü arşiv kopyasından aranır. Merkezi veri tabanına yazma veya otomatik aktarım bu yayına dahil değildir; Excel işlemleri açık sayfada geçerlidir ve arayüz bunu belirtir.
+
+Yayın öncesi geri dönüş noktası: Vercel dpl_WctywtEhChSFnPbuztSAAf3tK5v1; önceki üretim kaynak commit 598e775952e320a9dcb8c70b05f03ada844d6dbd.
