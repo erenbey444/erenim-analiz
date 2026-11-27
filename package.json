@@ -8,7 +8,8 @@
     "prebuild": "node scripts/fetch-history.mjs",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test scripts/performance.test.mjs"
+    "test": "node --test scripts/performance.test.mjs",
+    "postbuild": "node scripts/publish-homepage.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.469.0",
