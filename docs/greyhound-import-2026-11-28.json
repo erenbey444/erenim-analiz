@@ -1,0 +1,40 @@
+{
+  "source_filename": "ERENIM_HITITBET_YARIS_ARSIVI-1.xlsx",
+  "source_sha256": "268067100df0674ab291885787a1499216a6277f6d2a2b5ede3cbfd3c844dd25",
+  "baseline_count": 93,
+  "incoming_count": 217,
+  "added": 124,
+  "total": 217,
+  "duplicate_ids": 0,
+  "protected_user_corrections": [
+    {
+      "id": "29539381",
+      "incoming": {
+        "first": null,
+        "second": null,
+        "status": "Eksik"
+      },
+      "preserved": {
+        "first": 6,
+        "second": 4,
+        "fc": 17.8,
+        "status": "Kullanıcı bildirimiyle tamamlandı"
+      }
+    }
+  ],
+  "conflicts": [],
+  "statuses": {
+    "Çelişkili": 22,
+    "OCR tamamlandı": 193,
+    "Kullanıcı bildirimiyle tamamlandı": 1,
+    "Eksik": 1
+  },
+  "unsearchable": [
+    "29539856"
+  ],
+  "latest_known_race": {
+    "id": "29539833",
+    "date": "28/11/2026",
+    "time": "06:20"
+  }
+}
